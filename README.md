@@ -1,2 +1,6 @@
 # BioData-Training-School-2025
+Fundamentals of Biological Data Analysis with R 
+
+December 10-13, 2025; University of Tirana, Albania
+
 The BioData Training School 2025 — Fundamentals of Biological Data Analysis with R - will be an intensive, hands-on training aimed at students, researchers, and early-career professionals who want to start building skills in biological data analysis. The training will combine interactive lectures, guided exercises, and hands-on analysis of real-world datasets. The goal is to teach participants how to manage, visualize, and analyze biological data using the R programming language. In addition to core topics such as data cleaning, exploratory analysis, statistical modeling, and machine learning algorithms, the course will introduce key bioinformatics basics, including working with sequence data, functional annotation, and interpreting findings. 
