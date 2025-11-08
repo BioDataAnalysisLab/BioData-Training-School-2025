@@ -1,0 +1,357 @@
+---
+title: "Workshop Regression -- Practice"
+author: "A.Ponsero"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+    theme: flatly
+---
+
+
+```{r setup, message=FALSE, warning=FALSE}
+library(tidymodels)      # For modeling
+library(palmerpenguins)  # For our penguin data
+library(tidyverse)       # For data manipulation and visualization
+
+# Resolve any function conflicts in favor of tidymodels
+tidymodels_prefer()
+```
+
+
+## 7. Practice Exercises
+
+Now it's your turn! These exercises will help you practice what you've learned. Start with the basics and work your way up to the challenges.
+
+## Exercise 1: Build Your Own Simple Model
+
+Build a linear regression model to predict **bill length** from **bill depth**.
+
+**Tasks:**
+
+a) Create a train/test split (75/25) using the clean penguins data. Set seed to 456.
+
+b) Fit a simple linear regression model predicting `bill_length_mm` from `bill_depth_mm`
+
+c) Calculate RMSE and R² on both training and test sets
+
+d) Create a visualization showing the fitted line with the data points
+
+```{r exercise-1, eval=FALSE}
+# Your code here
+set.seed(456)
+
+# a) Create split
+
+
+# b) Fit model
+
+
+# c) Calculate metrics
+
+
+# d) Visualize
+```
+
+**Questions to consider:**
+- Is bill depth a good predictor of bill length?
+- How does this R² compare to our body mass models?
+
+Hint:
+```{r exercise-1-hints, eval=FALSE}
+# Hint for (a)
+bill_split <- initial_split(penguins_clean, prop = ___, strata = ___)
+
+# Hint for (b)
+lm_model %>%
+  fit(___ ~ ___, data = ___)
+
+# Hint for (c)
+# Use penguin_metrics() we created earlier
+```
+
+
+---
+
+## Exercise 2: Exploring Different Predictors
+
+We used flipper length as our main predictor. Let's see how other single predictors perform!
+
+**Task:** Build separate simple models predicting body mass from:
+1. Bill length only
+2. Bill depth only
+3. Compare their test set RMSE to our flipper length model (which had RMSE ≈ ???g)
+
+```{r exercise-2, eval=FALSE}
+# Your code here
+
+# Model 1: Bill length
+
+
+# Model 2: Bill depth
+
+
+# Compare RMSEs
+```
+
+**Questions:**
+- Which single predictor works best?
+- Does this match what we saw in the exploratory data analysis?
+- Why might bill depth perform worse than expected?
+
+---
+
+## Exercise 3: Adding an Interaction Term
+
+Species and sex both affect body mass, but does their **effect interact**? Maybe the sex difference is larger in some species than others.
+
+**Task:** Create a model with an interaction between species and sex.
+
+a) Build a recipe that includes the interaction term
+Hint: Use `step_interact(~ species:sex)` after creating dummy variables
+
+b) Fit the model and examine coefficients
+
+c) Compare test set performance to the model without interactions
+
+```{r exercise-3, eval=FALSE}
+# Your code here
+
+# Create recipe with interaction
+penguin_recipe_interact <- recipe(body_mass_g ~ flipper_length_mm + 
+                                    bill_length_mm + bill_depth_mm + 
+                                    species + sex, 
+                                  data = penguin_train) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_interact(~ ___:___) %>%  # Add interaction
+  step_zv(all_predictors())
+
+# Fit and evaluate
+```
+
+**Questions:**
+- Did adding the interaction improve performance?
+- What does the interaction coefficient tell you biologically?
+
+Hint:
+```{r exercise-3-hints, eval=FALSE}
+# Interaction syntax
+step_interact(~ starts_with("species"):starts_with("sex"))
+
+# Or more explicitly
+step_interact(~ species_Chinstrap:sex_male + species_Gentoo:sex_male)
+```
+
+---
+
+## Exercise 4: Investigating Prediction Errors
+
+Let's dig deeper into where our multiple regression model makes mistakes.
+
+**Tasks:**
+
+a) Using the test set results from our multiple regression model, identify the 5 penguins with the **largest absolute errors**
+
+b) For these penguins, create a table showing:
+   - Species, sex, actual body mass, predicted body mass, error
+   - All predictor variables
+
+c) Can you spot any patterns? Are errors concentrated in certain groups?
+
+d) Create a visualization showing prediction errors by species
+
+```{r exercise-4, eval=FALSE}
+# Your code here
+
+# a) Find worst predictions
+
+
+# b) Detailed table
+
+
+# c) Look for patterns
+
+
+# d) Visualize errors by species
+# Hint: Use a boxplot of residuals grouped by species
+```
+
+**Reflection questions:**
+- Are we systematically over- or under-predicting for any species?
+- Which species has the most variable prediction errors?
+- What might explain these patterns?
+
+---
+
+## Exercise 5: Comparing All Models
+
+Create a comprehensive comparison of all models we've built (or you've built in exercises).
+
+**Task:** Create a publication-ready table and/or visualization comparing:
+- Simple model (flipper only)
+- Multiple regression (all predictors)
+- Any other models from your exercises
+
+Show both training and test metrics for each.
+
+```{r exercise-5, eval=FALSE}
+# Your code here
+
+# Collect all model results
+
+
+# Create comparison table
+
+
+# Create comparison visualization
+```
+
+---
+
+## Exercise 6: Feature Engineering
+
+Can you improve the model by creating new features?
+
+**Ideas to try:**
+
+a) Create a **bill ratio**: `bill_length_mm / bill_depth_mm`
+
+b) Create a **body shape index**: Could combine multiple measurements
+
+c) Create **polynomial terms**: Maybe flipper_length² helps?
+
+**Task:** 
+1. Add your engineered features to a recipe
+2. Fit the model
+3. Evaluate on test set
+4. Did your features improve performance?
+
+```{r exercise-6, eval=FALSE}
+# Your code here
+
+# Example: Add derived features in recipe
+penguin_recipe_engineered <- recipe(body_mass_g ~ ., 
+                                    data = penguin_train) %>%
+  step_mutate(
+    bill_ratio = bill_length_mm / bill_depth_mm,
+    # Add your features here
+  ) %>%
+  # Continue with other preprocessing
+```
+
+**Challenge questions:**
+- Which engineered features help most?
+- Can you achieve R² > 0.90 on the test set?
+- Is a more complex model always better?
+
+---
+
+## Exercise 7: Prediction Challenge
+
+**Real-world scenario:** A field researcher measures these penguins but doesn't have a scale to weigh them. Use your best model to predict their body mass!
+
+```{r challenge-penguins}
+# Mystery penguins
+mystery_penguins <- tibble(
+  penguin_id = 1:5,
+  species = c("Adelie", "Gentoo", "Gentoo", "Chinstrap", "Adelie"),
+  island = c("Torgersen", "Biscoe", "Biscoe", "Dream", "Dream"),
+  sex = c("male", "female", "male", "female", "male"),
+  flipper_length_mm = c(191, 220, 230, 196, 185),
+  bill_length_mm = c(40.5, 49.1, 50.8, 46.3, 37.2),
+  bill_depth_mm = c(18.9, 14.8, 15.9, 17.8, 19.5)
+)
+```
+
+**Tasks:**
+
+a) Use your best model to predict body mass for each penguin
+
+b) Provide a **prediction interval** or estimate of uncertainty for each prediction
+   - Hint: Think about your model's RMSE - that's the typical error
+
+c) Which predictions are you most/least confident about, and why?
+
+```{r exercise-8, eval=FALSE}
+# Your code here
+
+# Make predictions
+
+
+# Add uncertainty estimates
+```
+
+---
+
+## Exercise 9: Explore on Your Own
+
+**Open-ended exploration!** Choose one or more:
+
+**Option A: Different research question**
+- Instead of predicting body mass, can you predict flipper length from other variables?
+- How does model performance compare?
+
+**Option B: Species-specific models**
+- Build separate models for each species
+- Do different predictors matter for different species?
+- Compare to the model with species as a predictor
+
+**Option C: Temporal analysis**
+- Does body mass change across years (2007-2009)?
+- Could you build a model that accounts for year?
+
+**Option D: Investigate Simpson's Paradox**
+- Create visualizations showing how bill depth relates to body mass
+- Show the relationship overall vs. within species
+- Explain why the relationship "reverses"
+
+---
+
+## Reflection Questions 🤔
+
+After completing the exercises, reflect on:
+
+1. **What was the hardest part of building regression models?**
+   - Data splitting? Model specification? Interpretation?
+
+2. **When would you use a simple vs. complex model?**
+   - What are the tradeoffs?
+
+3. **How would you explain train/test splitting to a colleague?**
+   - Can you use a non-technical analogy?
+
+4. **What surprised you most about the penguin data?**
+   - Any unexpected relationships?
+
+5. **How might you apply these techniques to your own research data?**
+   - What would be your outcome variable?
+   - What predictors might you use?
+
+---
+
+## Solutions and Discussion
+
+Solutions will be discussed as a group. Before looking at solutions:
+- Try the exercises yourself first!
+- Discuss with a neighbor
+- Don't worry about getting everything perfect
+
+> 💡 **Remember**: In real research, there's rarely one "right" answer. Different approaches have different tradeoffs, and the best choice depends on your specific research question and goals!
+
+---
+
+## Additional Resources
+
+Want to learn more? Check out:
+
+**Books:**
+- [Tidy Modeling with R](https://www.tmwr.org/) by Max Kuhn & Julia Silge
+- [R for Data Science](https://r4ds.had.co.nz/) by Hadley Wickham & Garrett Grolemund
+
+**Videos:**
+- [Julia Silge's YouTube channel](https://www.youtube.com/c/JuliaSilge) - Excellent tidymodels tutorials
+
+**More about penguins:**
+- [Palmer Penguins package website](https://allisonhorst.github.io/palmerpenguins/)

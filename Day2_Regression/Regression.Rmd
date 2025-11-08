@@ -1,0 +1,1248 @@
+---
+title: "Workshop Regression -- Palmer Penguins"
+author: "A.Ponsero"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+    theme: flatly
+---
+
+
+# Workshop 1: Predicting Penguin Body Mass with Regression
+
+## Learning Objectives
+
+By the end of this workshop, you will be able to:
+- Split data into training and testing sets
+- Build and train a linear regression model using tidymodels
+- Evaluate model performance using appropriate metrics
+- Make predictions on new data
+- Interpret model coefficients in a biological context
+
+---
+## 1. Setup & Packages
+  
+### Loading packages
+  
+Since we're using RStudio Cloud, the packages are already installed. Let's load them:
+
+```{r setup, message=FALSE, warning=FALSE}
+library(tidymodels)      # For modeling
+library(palmerpenguins)  # For our penguin data
+library(tidyverse)       # For data manipulation and visualization
+
+# Resolve any function conflicts in favor of tidymodels
+tidymodels_prefer()
+```
+
+### What's in tidymodels?
+
+Tidymodels is a collection of packages that work together for modeling:
+  
+  - **rsample**: Splitting data into training/test sets and resampling
+- **parsnip**: Specifying models in a consistent way
+- **recipes**: Preprocessing and feature engineering  
+- **yardstick**: Measuring model performance
+- **workflows**: Combining preprocessing and models together
+- **tune**: Hyperparameter tuning (not covered today)
+---
+
+### Quick check: Is everything working?
+
+Let's make sure everything loaded correctly:
+```{r check-setup}
+# Load the penguin data
+data(penguins)
+
+# Quick peek
+glimpse(penguins)
+```
+
+You should see 344 rows (penguins) and 8 columns. If you see an error, raise your hand!
+
+---
+
+## 2. Meet the Penguins
+
+### The Palmer Penguins Dataset
+
+The Palmer Penguins dataset contains size measurements for three penguin species observed on three islands in the Palmer Archipelago, Antarctica. Data were collected by Dr. Kristen Gorman and the Palmer Station Long Term Ecological Research (LTER) program.
+
+### What's in our dataset?
+
+We have **344 penguins** with **8 variables**:
+
+**Categorical variables:**
+- `species`: Adelie, Chinstrap, or Gentoo
+- `island`: Biscoe, Dream, or Torgersen
+- `sex`: male or female
+
+**Numeric variables:**
+- `bill_length_mm`: Length of the bill (beak) in millimeters
+- `bill_depth_mm`: Depth of the bill in millimeters
+- `flipper_length_mm`: Length of the flipper in millimeters
+- `body_mass_g`: Body mass in grams
+- `year`: Year of observation (2007, 2008, or 2009)
+
+> 💡 **Biological context**: Bill dimensions are related to diet and foraging behavior. Flipper length affects swimming ability. Body mass reflects overall size and condition.
+
+
+### Our Research Question
+
+**Can we predict a penguin's body mass from its physical measurements?**
+
+This is a **regression problem** because we're predicting a continuous numeric outcome (body mass in grams).
+
+**Why is this useful?**
+- Body mass is harder to measure in the field than bill/flipper dimensions
+- Understanding these relationships helps us understand penguin morphology and ecology
+- If we can predict body mass accurately, we might be able to estimate it from photographs or simpler measurements
+
+### Exploring the Outcome Variable: Body Mass
+
+Let's start by looking at what we want to predict.
+
+```{r explore-body-mass}
+# Summary statistics
+summary(penguins$body_mass_g)
+
+# Visualize the distribution
+ggplot(penguins, aes(x = body_mass_g)) +
+  geom_histogram(bins = 30, fill = "#159090", color = "white") +
+  labs(title = "Distribution of Penguin Body Mass",
+       x = "Body Mass (g)",
+       y = "Count") +
+  theme_minimal()
+```
+
+**What do we observe?**
+- Body mass ranges from about 2,700g to 6,300g
+- The distribution looks somewhat bimodal (two peaks) - why might that be?
+- Mean body mass is around 4,200g
+
+```{r body-mass-by-species}
+# Let's see if species explains the bimodal pattern
+ggplot(penguins, aes(x = body_mass_g, fill = species)) +
+  geom_histogram(bins = 30, alpha = 0.7, position = "identity") +
+  scale_fill_manual(values = c("Adelie" = "#FF8C00", 
+                                "Chinstrap" = "#A034F0", 
+                                "Gentoo" = "#159090")) +
+  labs(title = "Body Mass Distribution by Species",
+       x = "Body Mass (g)",
+       y = "Count") +
+  theme_minimal()
+```
+
+> 💡 **Insight**: The bimodal distribution is explained by species! Gentoo penguins are noticeably larger than Adelie and Chinstrap penguins.
+
+### Exploring Potential Predictors
+
+Now let's look at variables we might use to predict body mass.
+
+#### Flipper Length
+```{r flipper-vs-mass}
+ggplot(penguins, aes(x = flipper_length_mm, y = body_mass_g)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_smooth(method = "lm", se = TRUE, color = "#159090") +
+  labs(title = "Flipper Length vs Body Mass",
+       x = "Flipper Length (mm)",
+       y = "Body Mass (g)") +
+  theme_minimal()
+```
+
+**What do we see?**
+- Strong positive relationship! Longer flippers → heavier penguins
+- The relationship looks fairly linear
+- This will probably be a good predictor
+
+#### Bill Length
+```{r bill-length-vs-mass}
+ggplot(penguins, aes(x = bill_length_mm, y = body_mass_g)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_smooth(method = "lm", se = TRUE, color = "#FF8C00") +
+  labs(title = "Bill Length vs Body Mass",
+       x = "Bill Length (mm)",
+       y = "Body Mass (g)") +
+  theme_minimal()
+```
+
+**What do we see?**
+- Positive relationship, but with more scatter
+- Not as strong as flipper length, but still informative
+
+#### Bill Depth
+```{r bill-depth-vs-mass}
+ggplot(penguins, aes(x = bill_depth_mm, y = body_mass_g)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_smooth(method = "lm", se = TRUE, color = "#A034F0") +
+  labs(title = "Bill Depth vs Body Mass",
+       x = "Bill Depth (mm)",
+       y = "Body Mass (g)") +
+  theme_minimal()
+```
+
+**Interesting!** This relationship looks weaker or even slightly negative overall. But let's check something...
+
+```{r bill-depth-by-species}
+ggplot(penguins, aes(x = bill_depth_mm, y = body_mass_g, color = species)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_color_manual(values = c("Adelie" = "#FF8C00", 
+                                 "Chinstrap" = "#A034F0", 
+                                 "Gentoo" = "#159090")) +
+  labs(title = "Bill Depth vs Body Mass by Species",
+       x = "Bill Depth (mm)",
+       y = "Body Mass (g)") +
+  theme_minimal()
+```
+
+> **Simpson's Paradox Alert!** Within each species, bill depth is positively related to body mass, but across species the pattern reverses. This is a classic example of why we need to consider confounding variables!
+
+### Sex Differences?
+
+```{r mass-by-sex}
+# Remove NAs for cleaner visualization
+penguins %>%
+  filter(!is.na(sex)) %>%
+  ggplot(aes(x = sex, y = body_mass_g, fill = sex)) +
+  geom_boxplot(alpha = 0.7) +
+  scale_fill_manual(values = c("female" = "#FF8C00", "male" = "#159090")) +
+  labs(title = "Body Mass by Sex",
+       x = "Sex",
+       y = "Body Mass (g)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Males tend to be heavier than females - another variable that might be useful!
+
+
+### Correlation Overview
+
+Let's look at all numeric relationships at once:
+```{r correlation-plot, message=FALSE}
+library(GGally)
+
+penguins %>%
+  select(bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g) %>%
+  na.omit() %>%
+  ggpairs() +
+  theme_minimal()
+```
+
+**Key takeaways:**
+- Flipper length has the strongest correlation with body mass (r ≈ 0.87)
+- Bill length is also correlated (r ≈ 0.60)
+- Bill depth has a weaker correlation when ignoring species
+- All the predictor variables are also correlated with each other (multicollinearity - something to be aware of!)
+
+
+
+### Data Quality Check: Missing Values
+
+Before we start modeling, we need to check for missing data.
+```{r missing-data}
+# Count missing values in each column
+penguins %>%
+  summarise(across(everything(), ~sum(is.na(.))))
+```
+
+**What we found:**
+- We have some missing values in bill measurements, flipper length, body mass, and sex
+- Not a huge amount, but we'll need to handle this before modeling
+- For this workshop, we'll use **complete cases** (remove rows with any missing values)
+- In a real analysis, you might use more sophisticated imputation methods
+
+```{r create-clean-data}
+# Create a dataset with no missing values
+penguins_clean <- penguins %>%
+  drop_na()
+
+# How many penguins do we have left?
+cat("Original dataset:", nrow(penguins), "penguins\n")
+cat("Clean dataset:", nrow(penguins_clean), "penguins\n")
+cat("Removed:", nrow(penguins) - nrow(penguins_clean), "penguins with missing data\n")
+```
+
+We're left with **333 complete observations** - plenty for building models!
+
+---
+
+## 3. Splitting Our Data into Training and Testing Sets
+
+Now that we understand our data, it's time to split it into training and testing sets. Remember: we train on one portion and test on another to get an honest assessment of our model's performance.
+
+### Why do we split our data?
+
+Imagine you're studying for an exam. If you only practice with questions you've already seen the answers to, you might think you're doing great - but you won't know how well you'll do on *new* questions on the actual exam.
+
+**Machine learning has the same problem!**
+
+If we build a model and test it on the same data we used to train it, we can't know if it will work on new data. The model might just "memorize" the training data (called **overfitting**) rather than learning general patterns.
+
+#### The solution: Train/Test Split
+
+We split our data into two parts:
+  
+1. **Training set** (~70-80% of data): Used to build and train the model
+- The model learns patterns from this data
+- Like practice problems you study with
+
+2. **Testing set** (~20-30% of data): Used to evaluate the model
+- Data the model has never seen before
+- Like the actual exam questions
+- Gives us an honest assessment of how well our model generalizes
+
+#### Key principles
+
+**Always split BEFORE looking at the data closely**
+- Prevents you from unconsciously fitting to the test set
+
+**Never use the test set for model building**
+- Not for choosing features
+- Not for tuning parameters
+- Only for final evaluation
+
+**The test set mimics "future data"**
+- If your model performs well on the test set, it's more likely to work on truly new data
+
+### Setting a Random Seed
+
+Before we split, we need to set a **random seed**. This ensures that everyone gets the same "random" split, making our results reproducible.
+
+```{r set-seed}
+# Set seed for reproducibility
+set.seed(42)  # The answer to the ultimate question of life, the universe, and everything
+```
+
+> **Why does this matter?** Without setting a seed, each person would get a different random split, and we'd all get slightly different results. Setting a seed ensures we're all working with the same data splits. So if you change it (you curious fool), you might see something different than the instructor.
+
+### Creating the Split
+
+We'll use the `initial_split()` function from the rsample package (part of tidymodels).
+
+```{r create-split}
+# Create a split object
+penguin_split <- initial_split(
+  penguins_clean,      # Our clean data
+  prop = 0.75,         # 75% for training, 25% for testing
+  strata = body_mass_g # Stratify by our outcome variable
+)
+
+# Look at the split object
+penguin_split
+```
+
+**Let's break down these arguments:**
+
+- `penguins_clean`: The dataset we're splitting (remember, we removed missing values)
+- `prop = 0.75`: Put 75% of data in training, 25% in testing
+- `strata = body_mass_g`: **Stratified sampling** by our outcome variable
+  - Ensures training and test sets have similar distributions of body mass
+  - Particularly important for imbalanced data
+  - Makes our performance estimates more reliable
+
+
+### What is Stratified Sampling?
+
+Imagine if, by chance, all the heavy Gentoo penguins ended up in the training set and all the light Adelie penguins ended up in the test set. Our model would be learning from one distribution and tested on a very different one!
+
+**Stratified sampling prevents this** by ensuring that the distribution of body mass is similar in both training and test sets.
+
+### Extracting Training and Testing Sets
+
+The `penguin_split` object contains instructions for the split, but we need to actually extract the training and testing data:
+
+```{r extract-sets}
+# Extract training data
+penguin_train <- training(penguin_split)
+
+# Extract testing data
+penguin_test <- testing(penguin_split)
+```
+
+
+### Verify the Split
+
+Let's check that our split worked as expected:
+```{r verify-split}
+# Check dimensions
+cat("Original clean data:", nrow(penguins_clean), "penguins\n")
+cat("Training set:", nrow(penguin_train), "penguins\n")
+cat("Testing set:", nrow(penguin_test), "penguins\n")
+cat("\nPercentage in training:", 
+    round(nrow(penguin_train) / nrow(penguins_clean) * 100, 1), "%\n")
+cat("Percentage in testing:", 
+    round(nrow(penguin_test) / nrow(penguins_clean) * 100, 1), "%\n")
+```
+
+```{r verify-stratification}
+# Check that stratification worked - distributions should be similar
+cat("\nBody mass summary - Training set:\n")
+summary(penguin_train$body_mass_g)
+
+cat("\nBody mass summary - Testing set:\n")
+summary(penguin_test$body_mass_g)
+```
+
+The distributions should look very similar! That's stratification working.
+
+```{r compare-distributions}
+# Visual comparison
+bind_rows(
+  penguin_train %>% mutate(set = "Training"),
+  penguin_test %>% mutate(set = "Testing")
+) %>%
+  ggplot(aes(x = body_mass_g, fill = set)) +
+  geom_histogram(bins = 30, alpha = 0.7, position = "identity") +
+  scale_fill_manual(values = c("Training" = "#FF8C00", "Testing" = "#159090")) +
+  labs(title = "Body Mass Distribution: Training vs Testing",
+       subtitle = "Stratification ensures similar distributions",
+       x = "Body Mass (g)",
+       y = "Count",
+       fill = "Dataset") +
+  theme_minimal()
+```
+
+
+
+
+---
+
+## 4. Building Your First Model
+
+Now we're ready to build our first regression model! We'll start simple: predicting body mass from just **flipper length**, since we saw it had the strongest correlation.
+
+### The Tidymodels Workflow
+
+Building a model in tidymodels follows three main steps:
+
+1. **Specify** the model (what type? what engine?)
+2. **Fit** the model (train it on data)
+3. **Predict** with the model (make predictions on new data)
+
+Let's walk through each step!
+
+### Step 1: Specify the Model
+
+First, we specify what *type* of model we want and which computational *engine* to use.
+
+```{r specify-model}
+# Specify a linear regression model
+lm_model <- linear_reg() %>%
+  set_engine("lm") %>%
+  set_mode("regression")
+
+# Look at the model specification
+lm_model
+```
+
+**Let's break this down:**
+
+- `linear_reg()`: We want a linear regression model
+- `set_engine("lm")`: Use R's built-in `lm()` function as the computational engine
+  - You could also use "glmnet", "stan", "keras", etc.
+  - The beauty of parsnip is you can swap engines easily!
+- `set_mode("regression")`: We're doing regression (predicting a continuous outcome)
+  - The alternative would be "classification" for categorical outcomes (this will be explored in the next workshop)
+
+> **Note**: At this stage, we've only *specified* the model. We haven't trained it yet! The `lm_model` object is like a blueprint.
+
+### Step 2: Fit the Model to Training Data
+
+Now we train (fit) the model using our training data:
+
+```{r fit-simple-model}
+# Fit the model: predict body_mass_g from flipper_length_mm
+lm_fit <- lm_model %>%
+  fit(body_mass_g ~ flipper_length_mm, data = penguin_train)
+
+# Look at the fitted model
+lm_fit
+```
+
+**Understanding the formula syntax:**
+
+- `body_mass_g ~ flipper_length_mm` reads as "body mass is modeled by flipper length"
+- `~` means "is modeled by" or "as a function of"
+- Left side: outcome variable (what we want to predict)
+- Right side: predictor variable(s)
+
+**What just happened?**
+
+The model learned the relationship between flipper length and body mass by finding the best-fitting line through our training data. It estimated two parameters:
+
+1. **Intercept**: The predicted body mass when flipper length = 0mm (not biologically meaningful, but mathematically necessary)
+2. **Slope (coefficient)**: How much body mass changes for each 1mm increase in flipper length
+
+### Step 3: Examine the Model Output
+
+Let's look at the model parameters in a tidy format:
+
+```{r tidy-output}
+# Get a tidy summary of the model
+tidy(lm_fit)
+```
+
+**Understanding the output:**
+
+- **term**: The parameter name (Intercept and flipper_length_mm)
+- **estimate**: The fitted coefficient value
+- **std.error**: Standard error of the estimate (uncertainty)
+- **statistic**: Test statistic (t-value)
+- **p.value**: Statistical significance (< 0.05 is typically considered significant)
+
+### Step 4: Interpret the Coefficients
+
+Let's extract and interpret the coefficients:
+
+```{r extract-coefficients}
+# Extract coefficients
+coefs <- tidy(lm_fit)
+
+intercept <- coefs %>% filter(term == "(Intercept)") %>% pull(estimate)
+slope <- coefs %>% filter(term == "flipper_length_mm") %>% pull(estimate)
+
+cat("Intercept:", round(intercept, 2), "g\n")
+cat("Slope:", round(slope, 2), "g per mm\n")
+```
+
+**What does this mean biologically?**
+
+The slope tells us: **For every 1 millimeter increase in flipper length, we expect body mass to increase by approximately 48 grams** (on average, in our training data).
+
+> **Biological interpretation**: Flipper length is a good proxy for overall body size. Larger penguins have longer flippers and greater body mass. Our model has quantified this relationship.
+
+### Step 5: Visualize the Model
+
+Let's see what our model looks like:
+
+```{r visualize-simple-model, warning=FALSE}
+# Create predictions for plotting a smooth line
+flipper_range <- tibble(
+  flipper_length_mm = seq(
+    min(penguin_train$flipper_length_mm, na.rm = TRUE),
+    max(penguin_train$flipper_length_mm, na.rm = TRUE),
+    length.out = 100
+  )
+)
+
+# Get predictions
+flipper_predictions <- predict(lm_fit, new_data = flipper_range) %>%
+  bind_cols(flipper_range)
+
+# Plot training data with fitted line
+ggplot() +
+  # Training data points
+  geom_point(data = penguin_train, 
+             aes(x = flipper_length_mm, y = body_mass_g),
+             alpha = 0.5, size = 2) +
+  # Fitted regression line
+  geom_line(data = flipper_predictions,
+            aes(x = flipper_length_mm, y = .pred),
+            color = "#159090", size = 1.5) +
+  labs(title = "Our First Model: Body Mass ~ Flipper Length",
+       subtitle = "Blue line shows the model's predictions",
+       x = "Flipper Length (mm)",
+       y = "Body Mass (g)") +
+  theme_minimal()
+```
+
+**What do we see?**
+- The blue line is our model's "best guess" for body mass at any flipper length
+- Points above the line: the model *under*-predicted (penguin was heavier than predicted)
+- Points below the line: the model *over*-predicted (penguin was lighter than predicted)
+- The vertical distance from each point to the line is the **residual** (prediction error)
+
+### Step 6: Make Predictions on New Data
+
+Now let's use our model to predict body mass for some hypothetical penguins:
+
+```{r predict-new}
+# Create some new penguins with different flipper lengths
+new_penguins <- tibble(
+  flipper_length_mm = c(180, 200, 220)
+)
+
+# Make predictions
+predictions <- predict(lm_fit, new_data = new_penguins) %>%
+  bind_cols(new_penguins)
+
+predictions
+```
+
+**Interpreting predictions:**
+- A penguin with 180mm flippers: predicted mass ≈ 3175 g
+- A penguin with 200mm flippers: predicted mass ≈ 4148 g  
+- A penguin with 220mm flippers: predicted mass ≈ 5121 g
+
+Notice the predictions increase by about 48 g for each 1mm increase in flipper length - exactly as our coefficient suggested!
+
+### Step 7: Make Predictions on Training Data
+
+Before we touch the test set, let's see how well our model does on the training data:
+
+```{r predict-train}
+# Get predictions for all training data
+train_predictions <- predict(lm_fit, new_data = penguin_train) %>%
+  bind_cols(penguin_train)
+
+# Look at first few predictions
+train_predictions %>%
+  select(flipper_length_mm, body_mass_g, .pred) %>%
+  head(10)
+```
+
+**Understanding the output:**
+- `body_mass_g`: The actual body mass (truth)
+- `.pred`: Our model's prediction
+- The difference between them is the prediction error (residual)
+
+### Model Statistics
+
+Let's get some overall model statistics:
+```{r model-stats}
+# Get model-level statistics
+glance(lm_fit)
+```
+
+**Key statistics:**
+
+- **r.squared** (R²): Proportion of variance in body mass explained by flipper length
+  - Value between 0 and 1
+  - Our value of ~0.76 means flipper length explains about 76% of the variation in body mass
+  - That's pretty good for a single predictor!
+  
+- **sigma**: Residual standard error (typical prediction error)
+  - On average, our predictions are off by about `r round(glance(lm_fit)$sigma, 0)` grams
+
+- **p.value**: Overall model significance
+  - Very small p-value means our model is statistically significant
+  - Flipper length is definitely a useful predictor!
+
+
+
+
+
+
+
+---
+
+## 5. Evaluating Model Performance
+
+We've built a model, but how do we know if it's actually *good*? We need metrics to quantify performance!
+
+### Why Do We Need Metrics?
+
+Looking at plots is helpful, but we need **numbers** to:
+- Compare different models objectively
+- Communicate results clearly
+- Know if our model is good enough for its intended use
+- Detect overfitting
+
+### Common Regression Metrics
+
+For regression problems, we typically use three main metrics:
+
+#### 1. **RMSE (Root Mean Squared Error)**
+
+- Measures the average prediction error in the **same units as the outcome**
+- Lower is better (0 = perfect predictions)
+- Penalizes large errors more than small errors
+
+**Formula:** Square root of the average of squared errors
+
+**Interpretation:** "On average, my predictions are off by X grams"
+
+#### 2. **MAE (Mean Absolute Error)**
+
+- Also measures average prediction error
+- Lower is better
+- Treats all errors equally (doesn't penalize large errors as heavily as RMSE)
+
+**Formula:** Average of absolute errors
+
+**Interpretation:** "The typical distance between prediction and truth is X grams"
+
+#### 3. **R² (R-squared / Coefficient of Determination)**
+
+- Proportion of variance explained by the model
+- Range: 0 to 1 (sometimes negative for very bad models)
+- Higher is better (1 = perfect predictions)
+
+**Interpretation:** "My model explains X% of the variation in body mass"
+
+### Calculating Metrics: Training Set Performance
+
+Let's evaluate how well our model performs on the training data:
+
+```{r train-metrics}
+# Get predictions on training data
+train_results <- predict(lm_fit, new_data = penguin_train) %>%
+  bind_cols(penguin_train) %>%
+  select(body_mass_g, .pred, flipper_length_mm, species, sex)
+
+# Look at a few predictions
+head(train_results, 10)
+```
+
+```{r calculate-train-metrics}
+# Calculate RMSE
+train_rmse <- train_results %>%
+  rmse(truth = body_mass_g, estimate = .pred)
+
+# Calculate MAE  
+train_mae <- train_results %>%
+  mae(truth = body_mass_g, estimate = .pred)
+
+# Calculate R²
+train_rsq <- train_results %>%
+  rsq(truth = body_mass_g, estimate = .pred)
+
+# Display results
+cat("Training Set Performance:\n")
+cat("========================\n")
+cat("RMSE:", round(train_rmse$.estimate, 2), "grams\n")
+cat("MAE: ", round(train_mae$.estimate, 2), "grams\n")
+cat("R²:  ", round(train_rsq$.estimate, 3), "\n")
+```
+
+**What does this tell us?**
+
+- **RMSE ≈ 380g**: On average, our predictions are off by about 380 grams
+- **MAE ≈ 300g**: The typical absolute error is about 300 grams
+- **R² ≈ 0.77**: Our model explains 76% of the variation in body mass
+
+**Is this good?** Well, considering penguin body mass ranges from ~2,700g to ~6,300g (a range of 3,600g), being off by ~390g seems pretty reasonable! But we need to check the test set to know if it generalizes.
+
+### Using metric_set() for Convenience
+
+Instead of calculating each metric separately, we can bundle them together:
+
+```{r metric-set}
+# Create a custom metric set
+penguin_metrics <- metric_set(rmse, mae, rsq)
+
+# Calculate all metrics at once
+train_results %>%
+  penguin_metrics(truth = body_mass_g, estimate = .pred)
+```
+
+### Examining Residuals
+
+**Residuals** are the prediction errors: `actual - predicted`
+
+```{r calculate-residuals}
+# Add residuals to our results
+train_results <- train_results %>%
+  mutate(residual = body_mass_g - .pred)
+
+# Look at residual distribution
+ggplot(train_results, aes(x = residual)) +
+  geom_histogram(bins = 30, fill = "#159090", color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Distribution of Residuals: Training Set",
+       subtitle = "Should be centered around zero",
+       x = "Residual (Actual - Predicted, in grams)",
+       y = "Count") +
+  theme_minimal()
+```
+
+**Good residual plot characteristics:**
+- Centered around zero (no systematic bias)
+- Roughly symmetric (not heavily skewed)
+- No obvious patterns
+
+```{r residual-plot}
+# Residuals vs. fitted values
+ggplot(train_results, aes(x = .pred, y = residual)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE, color = "#159090") +
+  labs(title = "Residuals vs. Fitted Values",
+       subtitle = "Should show no pattern (random scatter around zero)",
+       x = "Predicted Body Mass (g)",
+       y = "Residual (g)") +
+  theme_minimal()
+```
+
+**What to look for:**
+- Random scatter around zero (good!)
+- No funnel shape (would indicate heteroscedasticity)
+- No curved pattern (would indicate non-linearity)
+
+Our residuals look pretty good!
+
+### The Moment of Truth: Testing Set Performance
+
+Now it's time to unlock the vault and evaluate our model on data it has **never seen before**!
+
+Remember: the test set mimics how our model would perform on future, new penguins.
+
+```{r test-predictions}
+# Get predictions on TEST data (first time using this!)
+test_results <- predict(lm_fit, new_data = penguin_test) %>%
+  bind_cols(penguin_test) %>%
+  select(body_mass_g, .pred, flipper_length_mm, species, sex)
+
+# Look at first few test predictions
+head(test_results, 10)
+```
+
+```{r test-metrics}
+# Calculate metrics on test set
+test_performance <- test_results %>%
+  penguin_metrics(truth = body_mass_g, estimate = .pred)
+
+test_performance
+```
+
+```{r compare-train-test}
+# Compare training and testing performance
+performance_comparison <- bind_rows(
+  train_results %>% 
+    penguin_metrics(truth = body_mass_g, estimate = .pred) %>%
+    mutate(dataset = "Training"),
+  test_results %>% 
+    penguin_metrics(truth = body_mass_g, estimate = .pred) %>%
+    mutate(dataset = "Testing")
+)
+
+performance_comparison %>%
+  select(dataset, .metric, .estimate) %>%
+  pivot_wider(names_from = dataset, values_from = .estimate) %>%
+  mutate(difference = Testing - Training)
+```
+
+**What do we see?**
+
+Let's compare:
+- **Training RMSE**: ~390g
+- **Testing RMSE**:  ~425 g
+
+**Key questions to ask:**
+
+1. **Are the test metrics similar to training metrics?**
+   - If yes: Great! Our model generalizes well
+   - If test metrics are much worse: We might be overfitting
+
+2. **Is the performance "good enough"?**
+   - Depends on your application!
+   - For penguin biology research, ±400g might be acceptable
+   - For penguin health monitoring, you might need better
+
+```{r compare-both-sets}
+# Compare training and test visually
+bind_rows(
+  train_results %>% mutate(dataset = "Training"),
+  test_results %>% mutate(dataset = "Testing")
+) %>%
+  ggplot(aes(x = body_mass_g, y = .pred, color = dataset)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray50") +
+  geom_point(alpha = 0.5, size = 2) +
+  scale_color_manual(values = c("Training" = "#FF8C00", "Testing" = "#159090")) +
+  labs(title = "Model Performance: Training vs. Testing",
+       subtitle = "Both should look similar if model generalizes well",
+       x = "Actual Body Mass (g)",
+       y = "Predicted Body Mass (g)",
+       color = "Dataset") +
+  theme_minimal() +
+  coord_fixed()
+```
+
+#### Understanding Overfitting and Underfitting
+
+##### **Underfitting** 
+- Model is too simple
+- Poor performance on BOTH training and test sets
+- Like studying the wrong material for an exam
+
+##### **Good Fit** 
+- Model captures patterns well
+- Similar performance on training and test sets
+- This is what we want!
+
+##### **Overfitting**
+- Model learns training data too well (memorization)
+- Great on training, poor on test set
+- Like memorizing practice problems but not understanding concepts
+
+### Where Do Our Predictions Go Wrong?
+
+Let's look at the cases where our model makes the biggest errors:
+
+```{r worst-predictions}
+# Find the worst predictions on test set
+worst_predictions <- test_results %>%
+  mutate(abs_error = abs(body_mass_g - .pred)) %>%
+  arrange(desc(abs_error)) %>%
+  head(10)
+
+worst_predictions %>%
+  select(species, sex, flipper_length_mm, body_mass_g, .pred, abs_error)
+```
+
+**Questions to consider:**
+- Are the biggest errors concentrated in one species?
+- Could other variables (sex, species) help improve predictions?
+- Are we systematically wrong for certain types of penguins?
+
+---
+
+## 6. Adding More Predictors: Multiple Regression
+
+Our simple model with just flipper length works pretty well, but we have other variables that might help! Let's build a **multiple regression model** that uses several predictors.
+
+### Why Add More Predictors?
+
+From our data exploration, we know that:
+- **Species** matters - Gentoo penguins are much larger
+- **Sex** matters - males tend to be heavier
+- **Bill measurements** also correlate with body mass
+
+By including these variables, we might:
+- Improve prediction accuracy
+- Capture more complex patterns
+- Account for confounding variables (remember Simpson's Paradox with bill depth!)
+
+### Building a Multiple Regression Model
+
+Let's start by adding all the predictors manually:
+```{r multiple-regression-simple}
+# Fit a model with multiple predictors
+lm_multi_fit <- lm_model %>%
+  fit(body_mass_g ~ flipper_length_mm + bill_length_mm + bill_depth_mm + 
+        species + sex, 
+      data = penguin_train)
+
+# Look at the coefficients
+tidy(lm_multi_fit)
+```
+
+**Understanding the output:**
+
+Each coefficient now represents the **change in body mass for a one-unit change in that predictor, holding all other predictors constant**.
+
+For example:
+- `flipper_length_mm`: Controlling for species, sex, and bill measurements, each additional mm of flipper length is associated with 14 grams change in body mass
+- `speciesChinstrap`: Compared to Adelie penguins (the reference level), Chinstrap penguins weigh 262 grams less on average
+- `sexmale`: Males weigh 390 grams more than females on average
+
+
+### Introducing the `recipes` Package
+
+As models get more complex, we need better tools for preprocessing. The `recipes` package provides a systematic way to handle:
+- Categorical variables (converting to dummy variables)
+- Missing data
+- Feature transformations
+- Scaling and centering
+
+**Think of a recipe as a preprocessing blueprint** that can be applied consistently to training and test data.
+
+### Creating a Recipe
+
+Let's create a recipe for our multiple regression model:
+
+```{r create-recipe}
+# Create a preprocessing recipe
+penguin_recipe <- recipe(body_mass_g ~ flipper_length_mm + bill_length_mm + 
+                          bill_depth_mm + species + sex, 
+                        data = penguin_train) %>%
+  # Convert categorical variables to dummy variables
+  step_dummy(all_nominal_predictors()) %>%
+  # Remove any predictors with zero variance
+  step_zv(all_predictors())
+
+# Look at the recipe
+penguin_recipe
+```
+
+**Breaking down the recipe:**
+
+1. `recipe(formula, data)`: Define what we want to predict and from what
+   - Formula: `body_mass_g ~ .` would use ALL other variables
+   - We explicitly list variables for clarity
+
+2. `step_dummy(all_nominal_predictors())`: Convert categorical variables to dummy variables
+   - `species` (3 levels) → 2 dummy variables (Chinstrap, Gentoo; Adelie is reference)
+   - `sex` (2 levels) → 1 dummy variable (male; female is reference)
+
+3. `step_zv(all_predictors())`: Remove zero-variance predictors
+   - Safety check in case any variable has only one value
+
+> **Why dummy variables?** Regression models need numeric inputs. We convert categorical variables like species into binary (0/1) indicator variables.
+
+---
+
+### Understanding Dummy Coding
+
+When we convert `species` to dummy variables:
+
+```{r dummy-example, echo=FALSE}
+# Show what dummy coding looks like
+tibble(
+  species = c("Adelie", "Chinstrap", "Gentoo"),
+  species_Chinstrap = c(0, 1, 0),
+  species_Gentoo = c(0, 0, 1)
+) %>%
+  knitr::kable(caption = "Dummy Coding for Species")
+```
+
+- **Adelie** (reference): Both dummies = 0
+- **Chinstrap**: species_Chinstrap = 1, species_Gentoo = 0
+- **Gentoo**: species_Chinstrap = 0, species_Gentoo = 1
+
+We only need 2 dummy variables for 3 categories because the reference category is represented by all dummies being 0.
+
+### Using Workflows
+
+Now we'll combine our recipe and model into a **workflow**. This bundles preprocessing and modeling together:
+```{r create-workflow}
+# Create a workflow
+penguin_workflow <- workflow() %>%
+  add_recipe(penguin_recipe) %>%
+  add_model(lm_model)
+
+# Look at the workflow
+penguin_workflow
+```
+
+**Why use workflows?**
+- Ensures preprocessing steps are applied consistently
+- Makes it easy to swap out models or recipes
+- Prevents data leakage between train and test sets
+- Cleaner, more organized code
+
+### Fitting the Workflow
+
+```{r fit-workflow}
+# Fit the workflow to training data
+penguin_fit <- penguin_workflow %>%
+  fit(data = penguin_train)
+
+# Extract and view the fitted model
+penguin_fit %>%
+  extract_fit_parsnip() %>%
+  tidy()
+```
+
+**Interpreting the coefficients:**
+
+Let's extract some key coefficients:
+
+```{r interpret-coefs}
+coef_table <- penguin_fit %>%
+  extract_fit_parsnip() %>%
+  tidy() %>%
+  arrange(desc(abs(estimate)))
+
+coef_table
+```
+
+**Key findings:**
+
+- **species_Gentoo**: Gentoo penguins are substantially heavier than Adelie (reference)
+- **sex_male**: Males are heavier than females (reference)
+- **flipper_length_mm**: Still an important predictor even after accounting for species and sex
+
+### Evaluating the Multiple Regression Model
+
+Let's see if adding predictors improved performance:
+```{r eval-multi-train}
+# Predictions on training data
+multi_train_results <- penguin_fit %>%
+  predict(penguin_train) %>%
+  bind_cols(penguin_train)
+
+# Calculate metrics
+multi_train_metrics <- multi_train_results %>%
+  penguin_metrics(truth = body_mass_g, estimate = .pred)
+
+multi_train_metrics
+```
+
+```{r eval-multi-test}
+# Predictions on TEST data
+multi_test_results <- penguin_fit %>%
+  predict(penguin_test) %>%
+  bind_cols(penguin_test)
+
+# Calculate metrics
+multi_test_metrics <- multi_test_results %>%
+  penguin_metrics(truth = body_mass_g, estimate = .pred)
+
+multi_test_metrics
+```
+
+### Comparing Models: Simple vs. Multiple
+
+Let's compare our simple model (flipper only) to our multiple regression model:
+```{r compare-models}
+# Create comparison table
+model_comparison <- bind_rows(
+  # Simple model
+  train_results %>% 
+    penguin_metrics(truth = body_mass_g, estimate = .pred) %>%
+    mutate(model = "Simple", dataset = "Training"),
+  test_results %>% 
+    penguin_metrics(truth = body_mass_g, estimate = .pred) %>%
+    mutate(model = "Simple", dataset = "Testing"),
+  # Multiple model
+  multi_train_results %>% 
+    penguin_metrics(truth = body_mass_g, estimate = .pred) %>%
+    mutate(model = "Multiple", dataset = "Training"),
+  multi_test_results %>% 
+    penguin_metrics(truth = body_mass_g, estimate = .pred) %>%
+    mutate(model = "Multiple", dataset = "Testing")
+)
+
+# Reshape for easier viewing
+model_comparison %>%
+  select(model, dataset, .metric, .estimate) %>%
+  pivot_wider(names_from = c(model, dataset), 
+              values_from = .estimate)
+```
+
+**What do we see?**
+
+Comparing test set performance:
+- **Simple model**: RMSE ≈ 425 g, R² ≈ 0.76
+- **Multiple model**: RMSE ≈ 339 g, R² ≈ 0.85
+
+Did we improve? By how much?
+
+### Predictions: Simple vs. Multiple Model
+
+Let's see how predictions differ between models:
+```{r compare-predictions}
+# Compare predictions for the same penguins (test set)
+prediction_comparison <- test_results %>%
+  select(body_mass_g, flipper_length_mm, species) %>%
+  mutate(
+    simple_pred = test_results$.pred,
+    multiple_pred = multi_test_results$.pred,
+    simple_error = abs(body_mass_g - simple_pred),
+    multiple_error = abs(body_mass_g - multiple_pred),
+    improvement = simple_error - multiple_error
+  )
+
+# Show cases where multiple model does much better
+prediction_comparison %>%
+  arrange(desc(improvement)) %>%
+  head(10) %>%
+  select(species, body_mass_g, simple_pred, multiple_pred, simple_error, multiple_error)
+```
+
+**Insights:**
+- Where does the multiple model improve the most?
+- Are there patterns (e.g., specific species, sex)?
+
+### Variable Importance
+
+Which variables matter most? Let's look at the statistical significance:
+```{r variable-importance}
+# Get coefficient p-values
+penguin_fit %>%
+  extract_fit_parsnip() %>%
+  tidy() %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    significant = if_else(p.value < 0.05, "Yes", "No"),
+    abs_t = abs(statistic)
+  ) %>%
+  arrange(desc(abs_t)) %>%
+  select(term, estimate, p.value, significant)
+```
+
+**Key questions:**
+- Which predictors are statistically significant (p < 0.05)?
+- Which have the largest effect sizes (coefficient estimates)?
+
+```{r coef-plot}
+# Visualize coefficient estimates with confidence intervals
+penguin_fit %>%
+  extract_fit_parsnip() %>%
+  tidy(conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(term = fct_reorder(term, estimate)) %>%
+  ggplot(aes(x = estimate, y = term)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.2) +
+  geom_point(size = 3, color = "#159090") +
+  labs(title = "Coefficient Estimates with 95% Confidence Intervals",
+       subtitle = "Variables whose CI doesn't cross zero are significant",
+       x = "Coefficient Estimate (change in body mass, grams)",
+       y = "") +
+  theme_minimal()
+```
+
+### Understanding Multicollinearity
+
+When predictors are correlated with each other, we have **multicollinearity**. This can:
+- Make coefficient estimates unstable
+- Make interpretation harder
+- Inflate standard errors
+
+Let's check the correlation among our numeric predictors:
+```{r check-multicollinearity}
+# Correlation matrix of numeric predictors
+penguin_train %>%
+  select(flipper_length_mm, bill_length_mm, bill_depth_mm) %>%
+  cor(use = "complete.obs") %>%
+  round(2)
+```
+
+**What we see:**
+- Flipper and bill length are moderately correlated (r ≈ 0.65)
+- This is moderate multicollinearity - not terrible, but worth noting
+- Coefficients might be less stable than in simple regression
+
+> **In practice**: Multicollinearity doesn't hurt prediction accuracy much, but it makes interpreting individual coefficients trickier. If your goal is prediction (like ours), it's usually not a major concern.
+
+### Making Predictions with the Multiple Model
+
+Let's use our improved model to predict body mass for some new penguins:
+
+```{r predict-new-multi}
+# Create hypothetical new penguins
+new_penguins_multi <- tibble(
+  species = c("Adelie", "Gentoo", "Chinstrap"),
+  sex = c("female", "male", "female"),
+  flipper_length_mm = c(185, 215, 195),
+  bill_length_mm = c(38, 48, 49),
+  bill_depth_mm = c(18, 15, 18)
+)
+
+# Make predictions
+predictions_multi <- penguin_fit %>%
+  predict(new_penguins_multi) %>%
+  bind_cols(new_penguins_multi)
+
+predictions_multi
+```
+
+**Compare these to what the simple model would predict** (using only flipper length):
+
+```{r compare-new-predictions}
+# Predictions from simple model
+predictions_simple <- lm_fit %>%
+  predict(new_penguins_multi) %>%
+  bind_cols(new_penguins_multi)
+
+# Combine
+bind_rows(
+  predictions_simple %>% mutate(model = "Simple"),
+  predictions_multi %>% mutate(model = "Multiple")
+) %>%
+  select(model, species, sex, .pred) %>%
+  pivot_wider(names_from = model, values_from = .pred)
+```
+
+The multiple model accounts for species and sex differences, leading to different predictions even for penguins with the same flipper length!
+
+---
+
+
