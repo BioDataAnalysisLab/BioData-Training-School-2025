@@ -1,0 +1,488 @@
+---
+title: "Workshop Clustering -- Additional exercises"
+author: "A.Ponsero"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+    theme: flatly
+---
+
+
+## Practice Exercises
+
+Now it's your turn to explore clustering! These exercises will help you practice what you've learned and discover new patterns in the data.
+
+## Exercise 1: Clustering Without Scaling (Learn from Mistakes!)
+
+Let's deliberately make the scaling mistake to see its impact.
+
+**Tasks:**
+
+a) Perform K-means clustering (K=3) on the **unscaled** data
+
+b) Visualize the clusters in the PC space
+
+c) Compare cluster sizes to the properly scaled version we did
+
+d) Calculate which feature has the most influence on the unscaled clustering
+```{r exercise-1, eval=FALSE}
+# Your code here
+set.seed(123)
+
+# a) Cluster on unscaled data
+penguin_features  # This is the original unscaled data
+
+
+# b) Do PCA on unscaled data and visualize
+
+
+# c) Compare cluster sizes
+
+
+# d) Which feature dominates?
+```
+
+**Questions:**
+- What happens to the clusters?
+- Why is this problematic?
+- How much does scaling matter?
+
+Hints:
+
+```{r exercise-1-hints, eval=FALSE}
+# Hint: Use the penguin_features dataframe (not penguin_scaled_recipe)
+kmeans_unscaled <- kmeans(penguin_features, centers = 3, nstart = 25)
+
+# For feature dominance, look at the ranges or calculate contribution to distance
+```
+
+---
+
+## Exercise 2: Finding the Optimal K
+
+We used K=3 based on our analysis, but let's explore this more systematically.
+
+**Tasks:**
+
+a) Create an elbow plot for K = 1 to 10 (we did this, but try it yourself!)
+
+b) Calculate silhouette scores for K = 2 to 8
+
+c) Based on these metrics, would you choose K=2, K=3, or K=4? Justify your answer.
+
+d) Fit models with K=2 and K=4, visualize them, and compare to K=3
+
+```{r exercise-2, eval=FALSE}
+# Your code here
+
+# a) Elbow plot
+
+
+# b) Silhouette scores
+
+
+# c) Your analysis and decision
+
+
+# d) Compare different K values
+```
+
+**Reflection questions:**
+- Is there one "correct" K?
+- What would K=2 represent biologically?
+- What would K=4 represent?
+
+---
+
+## Exercise 3: Hierarchical Clustering
+
+Try a completely different clustering approach! Hierarchical clustering builds a tree (dendrogram) of relationships.
+
+**Tasks:**
+
+a) Perform hierarchical clustering using the `hclust()` function with "complete" linkage
+
+b) Create a dendrogram and visualize it
+
+c) Cut the dendrogram to get 3 clusters
+
+d) Compare the hierarchical clusters to the K-means clusters
+
+```{r exercise-3, eval=FALSE}
+# Your code here
+
+# a) Hierarchical clustering
+# First calculate distance matrix
+dist_matrix <- dist(penguin_scaled_recipe)
+
+# Then perform hierarchical clustering
+hc_complete <- hclust(dist_matrix, method = "complete")
+
+# b) Plot the dendrogram
+plot(hc_complete, labels = FALSE, main = "Hierarchical Clustering Dendrogram")
+
+
+# c) Cut to get 3 clusters
+hc_clusters <- cutree(hc_complete, k = 3)
+
+
+# d) Compare to K-means
+table(Kmeans = kmeans_final$cluster, Hierarchical = hc_clusters)
+```
+
+**Questions:**
+- How do you read a dendrogram?
+- Do hierarchical and K-means give the same results?
+- Which method do you find more intuitive?
+
+Hints :
+```{r exercise-3-hints, eval=FALSE}
+# For a prettier dendrogram:
+library(ggdendro)
+ggdendrogram(hc_complete, rotate = FALSE, theme_dendro = FALSE)
+
+# To add cluster assignments to your data:
+penguins_hc <- penguins_complete %>%
+  mutate(hc_cluster = as.factor(hc_clusters))
+```
+
+---
+
+## Exercise 4: Different Linkage Methods
+
+Hierarchical clustering has different "linkage" methods that affect how clusters merge.
+
+**Tasks:**
+
+a) Try three linkage methods: "complete", "average", and "single"
+
+b) Create dendrograms for each
+
+c) Cut each to get 3 clusters
+
+d) Compare the results - do they agree?
+
+```{r exercise-4, eval=FALSE}
+# Your code here
+
+# a-c) Try different methods
+hc_complete <- hclust(dist_matrix, method = "complete")
+hc_average <- hclust(dist_matrix, method = "average")
+hc_single <- hclust(dist_matrix, method = "single")
+
+
+# d) Compare
+clusters_complete <- cutree(hc_complete, k = 3)
+clusters_average <- cutree(hc_average, k = 3)
+clusters_single <- cutree(hc_single, k = 3)
+
+# Confusion matrices
+```
+
+**Questions:**
+- Which linkage method gives the most balanced clusters?
+- Do some methods produce very unbalanced clusters?
+- Which method agrees most with K-means?
+
+---
+
+## Exercise 5: Clustering with Different Features
+
+So far we've used all 4 morphological features. What if we select different features?
+
+**Tasks:**
+
+a) Cluster using ONLY bill measurements (bill_length_mm, bill_depth_mm)
+
+b) Cluster using ONLY body size (flipper_length_mm, body_mass_g)
+
+c) Compare these to our original 4-feature clustering
+
+d) Visualize all three approaches with PCA (where applicable)
+
+```{r exercise-5, eval=FALSE}
+# Your code here
+
+# a) Bill only
+bill_features <- penguins_complete %>%
+  select(bill_length_mm, bill_depth_mm) %>%
+  scale()
+
+
+# b) Size only
+size_features <- penguins_complete %>%
+  select(flipper_length_mm, body_mass_g) %>%
+  scale()
+
+
+# c) Compare results
+
+
+# d) Visualize
+```
+
+**Questions:**
+- Which feature set gives the "best" clustering?
+- Does bill shape separate species as well as body size?
+- What does this tell you about penguin morphology?
+
+---
+
+## Exercise 6: Species-by-Species Analysis
+
+Let's investigate which species are most similar to each other.
+
+**Tasks:**
+
+a) Calculate the "confusion" between each pair of species in your clustering
+   - How many Adelie are misclassified as each other species?
+   - How many Chinstrap are misclassified?
+   - How many Gentoo are misclassified?
+
+b) Which two species are most similar (most often confused)?
+
+c) Calculate the average distance between species in PC space
+
+d) Create a visualization showing species separation
+
+```{r exercise-6, eval=FALSE}
+# Your code here
+
+# a) Detailed confusion analysis
+
+
+# b) Most similar species
+
+
+# c) Distance between species in PC space
+species_centers <- penguins_with_pca %>%
+  group_by(species) %>%
+  summarise(
+    PC1_mean = mean(PC1),
+    PC2_mean = mean(PC2)
+  )
+
+
+# d) Visualize
+```
+
+**Biological interpretation:**
+- Why might some species be more similar?
+- What does this tell us about penguin evolution or ecology?
+
+---
+
+## Exercise 7: The Silhouette Plot
+
+Silhouette plots show how well each individual penguin fits in its cluster.
+
+**Tasks:**
+
+a) Calculate silhouette coefficients for each penguin in your K=3 clustering
+
+b) Create a silhouette plot
+
+c) Identify penguins with negative silhouette values (poor fit)
+
+d) Examine these poorly-fitting penguins - what makes them ambiguous?
+
+```{r exercise-7, eval=FALSE}
+# Your code here
+library(cluster)
+
+# a) Calculate silhouette
+sil <- silhouette(kmeans_final$cluster, dist(penguin_scaled_recipe))
+
+
+# b) Plot
+plot(sil, col = c("#FF8C00", "#159090", "#A034F0"), main = "Silhouette Plot")
+
+# Or with factoextra
+library(factoextra)
+fviz_silhouette(sil)
+
+
+# c) Find poor fits
+poor_fits <- which(sil[, 3] < 0)
+
+
+# d) Examine these penguins
+```
+
+**Questions:**
+- What proportion of penguins have negative silhouette?
+- Are poorly-fitting penguins concentrated in one cluster?
+- Do they tend to be a particular species?
+
+---
+
+## Exercise 8: Adding New Variables
+
+What if we include categorical variables in our analysis?
+
+**Tasks:**
+
+a) Create dummy variables for `sex` (exclude penguins with missing sex)
+
+b) Combine with scaled morphological features
+
+c) Cluster with these 5 features (4 morphological + sex)
+
+d) Does including sex improve clustering?
+
+```{r exercise-8, eval=FALSE}
+# Your code here
+
+# a) Prepare data with sex
+penguins_with_sex <- penguins_complete %>%
+  filter(!is.na(sex))
+
+# Create features including sex dummy variable
+features_with_sex <- penguins_with_sex %>%
+  mutate(sex_male = if_else(sex == "male", 1, 0)) %>%
+  select(bill_length_mm, bill_depth_mm, flipper_length_mm, 
+         body_mass_g, sex_male) %>%
+  scale()
+
+
+# b-c) Cluster
+
+
+# d) Compare to clustering without sex
+```
+
+**Challenge questions:**
+- Should you scale the dummy variable for sex?
+- Does sex add information beyond morphology?
+- How would you include island as a feature?
+
+---
+
+## Exercise 9: Cluster Stability
+
+How stable are our clusters? Do they change with different random starts?
+
+**Tasks:**
+
+a) Run K-means 10 times with different random seeds
+
+b) For each run, calculate agreement with the first run
+
+c) Are some penguins consistently in the same cluster?
+
+d) Identify "unstable" penguins that switch clusters
+
+```{r exercise-9, eval=FALSE}
+# Your code here
+
+# a) Multiple runs
+set.seed(1)
+seeds <- 1:10
+cluster_results <- list()
+
+for (i in seq_along(seeds)) {
+  set.seed(seeds[i])
+  km <- kmeans(penguin_scaled_recipe, centers = 3, nstart = 1)
+  cluster_results[[i]] <- km$cluster
+}
+
+
+# b) Calculate agreement
+
+
+# c) Find consistent penguins
+
+
+# d) Find unstable penguins
+```
+
+**Interpretation:**
+- Why might some penguins be unstable?
+- Does using nstart = 25 solve this problem?
+- What does this tell you about cluster boundaries?
+
+---
+
+## Exercise 10: Island and Sex Patterns
+
+Do our clusters correspond to island or sex differences?
+
+**Tasks:**
+
+a) Create a visualization showing cluster composition by island
+
+b) Create a visualization showing cluster composition by sex
+
+c) Calculate if clusters are enriched for particular islands or sexes
+
+d) What biological patterns do you discover?
+
+```{r exercise-10, eval=FALSE}
+# Your code here
+
+# a) Cluster by island
+penguins_clustered %>%
+  count(cluster, island) %>%
+  ggplot(aes(x = cluster, y = n, fill = island)) +
+  geom_col(position = "dodge") +
+  # Add your styling
+
+
+# b) Cluster by sex
+
+
+# c) Chi-square test for independence
+
+
+# d) Interpret
+```
+
+---
+
+## Exercise 11: The Biological Interpretation Challenge
+
+**No coding required!** Think critically about what we've discovered.
+
+**Scenario:** Imagine you're writing the results section of a paper. You performed clustering without knowing the species labels.
+
+**Tasks:**
+
+a) Write a paragraph describing your 3 clusters without mentioning species
+   - What morphological characteristics define each cluster?
+   - Give each cluster a descriptive name
+
+b) Propose biological hypotheses for why these groups exist
+   - Diet differences?
+   - Sexual dimorphism?
+   - Island adaptation?
+
+c) Design a follow-up study to test your hypotheses
+
+**Discussion points:**
+- Would you conclude there are 3 "types" of penguins, or is it a continuum?
+- What additional data would help interpret the clusters?
+- How confident are you in the biological reality of these groups?
+
+---
+
+## Additional Resources
+
+Want to learn more about clustering?
+
+**Books:**
+- [An Introduction to Statistical Learning](https://www.statlearning.com/) - Chapter on Unsupervised Learning
+- [Hands-On Machine Learning with R](https://bradleyboehmke.github.io/HOML/) - Chapter 8 on K-means
+
+**Videos:**
+- [StatQuest: K-means clustering](https://www.youtube.com/watch?v=4b5d3muPQmA)
+- [StatQuest: Hierarchical Clustering](https://www.youtube.com/watch?v=7xHsRkOdVwo)
+- [StatQuest: Principal Component Analysis (PCA)](https://www.youtube.com/watch?v=FgakZw6K1QQ)
+
+**Interactive:**
+- [K-means clustering visualizer](https://www.naftaliharris.com/blog/visualizing-k-means-clustering/)
+
+**Palmer Penguins:**
+- [Package website](https://allisonhorst.github.io/palmerpenguins/)

@@ -1,0 +1,953 @@
+---
+title: "Workshop Clustering -- Palmer Penguins"
+author: "A.Ponsero"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+    theme: flatly
+---
+
+# Workshop 2: Discovering Groups in Palmer Penguins with Clustering
+
+## Learning Objectives
+
+By the end of this workshop, you will be able to:
+- Understand when and why to use clustering methods
+- Prepare data appropriately for clustering (especially scaling!)
+- Apply k-means and hierarchical clustering
+- Visualize high-dimensional clusters using PCA
+- Interpret and validate clustering results
+- Compare different clustering approaches
+
+---
+
+## 1. Introduction to Clustering: Discovering Hidden Patterns
+
+### Welcome Back!
+
+In the first workshop, we used **supervised learning** to predict penguin body mass. We *knew* what we were trying to predict, and we had labeled training data to learn from.
+
+Today, we're doing something fundamentally different: **discovering patterns we don't know exist yet.**
+
+### What is Unsupervised Learning?
+
+**Unsupervised learning** is like being an explorer without a map. You're looking for patterns, groups, or structure in data *without* being told what to look for.
+
+**Think of it this way:**
+
+Imagine you're a penguin researcher who just arrived in Antarctica with no prior knowledge:
+
+- **Supervised learning** (Workshop 1): Someone shows you examples of three species and says "Here are Adelie, Chinstrap, and Gentoo penguins. Now predict the species of new penguins."
+
+- **Unsupervised learning** (This workshop): You observe penguins and notice "Some penguins seem similar to each other and different from others. I wonder if there are natural groups?"
+
+You might discover the three species *without anyone telling you they exist!*
+
+### What is Clustering?
+
+**Clustering** is a type of unsupervised learning that groups similar observations together.
+
+**The goal:** Find groups (clusters) where:
+- Observations *within* a cluster are similar to each other
+- Observations *between* clusters are different from each other
+
+### Clustering Questions You Can Ask
+
+Here are examples of clustering questions across different fields:
+
+**Biology/Ecology:**
+- Are there distinct morphological groups among these organisms?
+- Can we identify ecological communities in this habitat?
+- Do gene expression patterns cluster into functional groups?
+
+**Medicine:**
+- Are there subtypes of this disease based on symptoms?
+- Can we identify patient groups that respond differently to treatment?
+
+**Social Sciences:**
+- Are there distinct behavioral patterns in this population?
+- Can we identify cultural subgroups based on survey responses?
+
+**Our question today:**
+> **"Can we identify natural groups of penguins based on their physical measurements, without knowing their species labels?"**
+
+### Types of Clustering Methods
+
+There are many clustering algorithms. Today we'll focus on two popular approaches:
+
+#### **K-means Clustering**
+- **How it works:** Finds K clusters by minimizing distance within clusters
+- **Pros:** Fast, simple, works well with spherical clusters
+- **Cons:** Need to specify number of clusters (K) in advance
+- **When to use:** Large datasets, clear idea of cluster number
+
+#### **Hierarchical Clustering**  
+- **How it works:** Builds a tree (dendrogram) of nested clusters
+- **Pros:** Don't need to specify K upfront, shows relationships between clusters
+- **Cons:** Slower for large datasets, sensitive to outliers
+- **When to use:** Smaller datasets, want to explore different numbers of clusters
+
+We'll apply both methods to our penguins and see what we discover!
+
+
+---
+
+## 2. Setup & Data Preparation
+
+### Loading Packages
+
+Let's load the packages we'll need for clustering:
+```{r setup-clustering, message=FALSE, warning=FALSE}
+# Core tidyverse and tidymodels
+library(tidymodels)
+library(tidyverse)
+
+# Our penguin data
+library(palmerpenguins)
+
+# Clustering-specific packages
+library(tidyclust)     # Tidy interface for clustering
+library(factoextra)    # Nice clustering visualizations
+library(cluster)       # Classical clustering algorithms
+
+# For dendrograms
+library(ggdendro)
+
+# Set a theme for consistent plotting
+theme_set(theme_minimal())
+
+# Resolve function conflicts
+tidymodels_prefer()
+```
+
+**What's new today:**
+- `tidyclust`: Provides a tidy interface for clustering (similar to parsnip for models)
+- `factoextra`: Makes beautiful clustering visualizations
+- `cluster`: Classic clustering algorithms and validation metrics
+
+### Welcome Back, Penguins!
+
+Let's reload our data:
+```{r load-penguins}
+# Load the data
+data(penguins)
+
+# Quick look
+glimpse(penguins)
+```
+
+**Refresher:** We have 344 penguins with measurements of:
+- Bill length and depth (mm)
+- Flipper length (mm)
+- Body mass (g)
+- Species, island, sex
+- Year
+
+### Today's Research Question: A Discovery Scenario
+
+**Imagine this scenario:**
+
+You're a penguin researcher in Antarctica. You've measured many penguins' physical characteristics, but you **don't know how many species there are** or which penguin belongs to which species.
+
+**Your questions:**
+1. Are there natural groups among these penguins?
+2. How many groups are there?
+3. What characteristics define each group?
+4. Do the groups make biological sense?
+
+**Our approach:** We'll **pretend we don't know the species labels** and see if clustering can discover them!
+
+> **The Discovery Mindset:** Even though the species column exists in our data, we won't use it for clustering. We'll only look at it *afterwards* to validate our clusters
+
+### Selecting Features for Clustering
+
+Clustering algorithms work with **numeric features**. We need to decide which measurements to use.
+
+**Available numeric features:**
+- `bill_length_mm`
+- `bill_depth_mm`
+- `flipper_length_mm`
+- `body_mass_g`
+- `year` (hum... this isn't a morphological feature!)
+
+**Decision:** We'll use the four morphological measurements. These describe penguin body characteristics and are most likely to reflect species differences.
+
+```{r select-features}
+# Select just the numeric features for clustering
+penguins_features <- penguins %>%
+  select(bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g)
+
+# Quick look at our clustering data
+head(penguins_features)
+```
+
+### Handling Missing Values
+
+```{r remove-missing}
+# Create dataset with complete cases only
+penguins_complete <- penguins %>%
+  select(species, island, sex, 
+         bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g) %>%
+  drop_na()
+
+# How many penguins do we have?
+cat("Complete cases:", nrow(penguins_complete), "penguins\n")
+cat("Removed:", nrow(penguins) - nrow(penguins_complete), "penguins with missing data\n")
+```
+
+**Good!** We have **333 complete penguins** to cluster - plenty of data.
+
+### Keeping Species Info (But Not Using It... Yet!)
+
+Even though we're pretending not to know the species, let's keep that information so we can validate our results later:
+
+```{r separate-features-labels}
+# Features for clustering (numeric only)
+penguin_features <- penguins_complete %>%
+  select(bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g)
+
+# "True" labels (for validation later - locked away!)
+penguin_labels <- penguins_complete %>%
+  select(species, island, sex)
+
+# Preview features
+head(penguin_features)
+```
+
+**Important:** The `penguin_features` dataframe contains ONLY the measurements we'll cluster on. No species labels!
+
+### Exploring Our Features
+
+Before clustering, let's understand what we're working with:
+```{r feature-summary}
+# Summary statistics
+summary(penguin_features)
+```
+
+**Key observations:**
+```{r feature-ranges}
+# Calculate ranges
+penguin_features %>%
+  summarise(across(everything(), 
+                   list(min = ~min(., na.rm=TRUE), 
+                        max = ~max(., na.rm=TRUE),
+                        range = ~max(., na.rm=TRUE) - min(., na.rm=TRUE)))) %>%
+  pivot_longer(everything(), 
+               names_to = c("variable", ".value"),
+               names_pattern = "(.*)_(.*)") %>%
+  arrange(desc(range))
+```
+
+**Critical observation:** Notice the different scales!
+- Body mass: ranges from ~2,700 to ~6,300 (range ≈ 3,600g)
+- Flipper length: ranges from ~172 to ~231 (range ≈ 59mm)
+- Bill measurements: even smaller ranges
+
+**Why does this matter?** We'll see in the next section - this is an most important issue in clustering!
+
+### Visualizing in Feature Space
+
+Let's look at a few 2D projections to get intuition about potential clusters:
+```{r feature-space-viz}
+# Flipper length vs body mass
+p1 <- ggplot(penguins_complete, aes(x = flipper_length_mm, y = body_mass_g)) +
+  geom_point(alpha = 0.5, size = 2) +
+  labs(title = "Flipper Length vs Body Mass",
+       subtitle = "Can you see distinct groups?") +
+  theme_minimal()
+
+# Bill length vs bill depth
+p2 <- ggplot(penguins_complete, aes(x = bill_length_mm, y = bill_depth_mm)) +
+  geom_point(alpha = 0.5, size = 2) +
+  labs(title = "Bill Length vs Bill Depth",
+       subtitle = "Different pattern here!") +
+  theme_minimal()
+
+library(patchwork)
+p1 / p2
+```
+
+**Do you see potential groups?** 
+- Some features show clearer separation than others
+- This is why we use all features together - each adds information!
+
+### Clustering Algorithm Perspective
+
+From the algorithm's perspective, each penguin is a **point in 4D space** with coordinates:
+- (bill_length, bill_depth, flipper_length, body_mass)
+
+For example:
+```{r example-penguin}
+# First penguin in our dataset
+first_penguin <- penguin_features[1, ]
+first_penguin
+```
+
+This penguin exists at position: (39.1, 18.7, 181, 3750) in 4D space.
+
+**Clustering will:**
+1. Calculate distances between ALL pairs of penguins in 4D space
+2. Group penguins that are close together
+3. Separate penguins that are far apart
+
+**THE PROBLEM:** Body mass (in grams) will completely dominates the distance calculation because its values are so much larger!
+
+---
+
+## 3. Data Preparation: The Scaling Problem
+
+### The Most Important Rule in Clustering
+
+### Experiment: Clustering WITHOUT Scaling (The Wrong Way)
+
+Let's intentionally make a mistake to see what happens. We'll cluster our raw, unscaled data:
+```{r cluster-without-scaling}
+# WARNING: This is the WRONG way to do it!
+# We're doing this to see what goes wrong.
+
+set.seed(123)
+
+# K-means with 3 clusters on RAW data
+kmeans_unscaled <- kmeans(penguin_features, centers = 3, nstart = 25)
+
+# Add cluster assignments to our data
+unscaled_results <- penguins_complete %>%
+  mutate(cluster = as.factor(kmeans_unscaled$cluster))
+
+# Visualize the "clusters"
+ggplot(unscaled_results, 
+       aes(x = flipper_length_mm, y = body_mass_g, color = cluster)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_color_manual(values = c("1" = "#FF8C00", "2" = "#159090", "3" = "#A034F0")) +
+  labs(title = "K-means Clustering WITHOUT Scaling",
+       subtitle = "Something looks wrong here...") +
+  theme_minimal()
+```
+
+**Do these clusters look good?** Let's investigate what happened.
+
+### Diagnosing the Problem: Which Features Drove the Clustering?
+
+Let's see which features dominate:
+```{r distance-breakdown}
+# Take two random penguins
+penguin_A <- penguin_features[1, ]
+penguin_B <- penguin_features[50, ]
+
+# Calculate contribution of each feature to total distance
+contributions <- tibble(
+  feature = names(penguin_features),
+  difference = as.numeric(penguin_A - penguin_B),
+  squared_diff = difference^2,
+  contribution_pct = 100 * squared_diff / sum(squared_diff)
+)
+
+ggplot(contributions, aes(x = reorder(feature, contribution_pct), 
+                          y = contribution_pct)) +
+  geom_col(fill = "#159090") +
+  coord_flip() +
+  labs(title = "Feature Contribution to Distance Calculation",
+       subtitle = "Body mass dominates because of scale, not because it's more important!",
+       x = "",
+       y = "% Contribution to Total Distance") +
+  theme_minimal()
+```
+
+**Body mass is overwhelming everything else simply because of units!** This is the scaling problem.
+
+### The Solution: Standardization (Z-score Scaling)
+
+The most common solution is **z-score standardization**:
+
+$$z = \frac{x - \text{mean}(x)}{\text{sd}(x)}$$
+
+**What this does:**
+- Centers each feature around 0 (subtract mean)
+- Scales to unit variance (divide by standard deviation)
+- After standardization, all features are on the same scale
+- Typical values range from about -3 to +3
+
+**Interpretation after scaling:**
+- A value of 0 = average
+- A value of 1 = one standard deviation above average
+- A value of -1 = one standard deviation below average
+
+### Visualizing the Transformation
+
+Let's see what standardization does to our data:
+```{r show-standardization}
+# Standardize one feature (body mass) to demonstrate
+body_mass_raw <- penguin_features$body_mass_g
+body_mass_scaled <- scale(body_mass_raw)
+
+# Create comparison data
+comparison_data <- tibble(
+  raw = body_mass_raw,
+  scaled = as.numeric(body_mass_scaled)
+)
+
+# Plot side by side
+p1 <- ggplot(comparison_data, aes(x = raw)) +
+  geom_histogram(bins = 30, fill = "#FF8C00", color = "white") +
+  labs(title = "Before Scaling",
+       x = "Body Mass (g)",
+       y = "Count") +
+  theme_minimal()
+
+p2 <- ggplot(comparison_data, aes(x = scaled)) +
+  geom_histogram(bins = 30, fill = "#159090", color = "white") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "After Standardization",
+       x = "Standardized Body Mass (z-score)",
+       y = "Count") +
+  theme_minimal()
+
+library(patchwork)
+p1 | p2
+```
+
+**Notice:**
+- Same shape, different scale
+- Mean is now 0 (red line)
+- Most values between -2 and +2
+
+### Using recipes for Scaling
+
+Let's use the `recipes` package to create a proper preprocessing pipeline:
+```{r create-scaling-recipe}
+# Create a recipe for scaling
+clustering_prep <- recipe(~ ., data = penguin_features) %>%
+  step_normalize(all_predictors()) %>%
+  prep()
+
+# Note: recipe(~ ., data = ...) means "use all columns, no outcome variable"
+# This is the syntax for unsupervised learning
+
+clustering_prep
+```
+
+**What's `step_normalize()`?**
+- Performs z-score standardization (subtract mean, divide by sd)
+- Learns the mean and sd from the data
+- Applies the same transformation consistently
+
+### Applying the Recipe
+
+Now we "bake" the recipe to transform our data:
+```{r bake-recipe}
+# Apply the transformation
+penguin_scaled_recipe <- clustering_prep %>%
+  bake(new_data = NULL)  # NULL means "use the data from prep()"
+
+# Look at the result
+head(penguin_scaled_recipe)
+
+# Verify it's standardized
+summary(penguin_scaled_recipe)
+```
+
+**Perfect!** All features now have mean ≈ 0 and comparable scales.
+
+
+---
+
+## 4. K-means Clustering
+
+### What is K-means?
+
+**K-means** is one of the most popular clustering algorithms. It's:
+- Fast and efficient
+- Easy to understand
+- Works well when clusters are roughly spherical
+- Requires you to specify K (number of clusters) upfront
+
+### How K-means Works: The Intuition
+
+Imagine organizing penguins into groups:
+
+**Step 1:** Randomly place K "center points" in your feature space
+- These are your initial cluster centers
+
+**Step 2:** Assign each penguin to its nearest center
+- Calculate distance from each penguin to each center
+- Assign penguin to the closest center
+
+**Step 3:** Update the centers
+- Move each center to the average position of all penguins assigned to it
+
+**Step 4:** Repeat steps 2-3 until nothing changes
+- Penguins stop switching clusters
+- Centers stop moving
+
+**Result:** K clusters where penguins are close to their cluster center!
+
+### The Challenge: Choosing K
+
+**Big question:** How many clusters (K) should we use?
+
+For our penguins:
+- We *secretly* know there are 3 species
+- But in real clustering, you don't know!
+- How do we decide?
+
+**Two main approaches:**
+1. **Elbow method** - look for the "elbow" in a plot
+2. **Silhouette analysis** - measure cluster quality
+
+Let's try both!
+
+### Approach 1: The Elbow Method
+
+**Idea:** Try different values of K and see how much the within-cluster variation decreases.
+
+**Within-cluster sum of squares (WCSS):** How far are points from their cluster centers?
+- Lower = tighter clusters
+- But adding more clusters ALWAYS decreases WCSS
+- We want the "sweet spot" - the elbow in the curve
+
+Let's calculate WCSS for K = 1 to 10:
+
+```{r elbow-method}
+# Function to calculate total within-cluster sum of squares
+calculate_wcss <- function(k, data) {
+  set.seed(123)  # For reproducibility
+  kmeans_result <- kmeans(data, centers = k, nstart = 25)
+  return(kmeans_result$tot.withinss)
+}
+
+# Try K from 1 to 10
+k_values <- 1:10
+wcss_values <- map_dbl(k_values, calculate_wcss, data = penguin_scaled_recipe)
+
+# Create results tibble
+elbow_data <- tibble(
+  k = k_values,
+  wcss = wcss_values
+)
+
+# Plot the elbow curve
+ggplot(elbow_data, aes(x = k, y = wcss)) +
+  geom_line(color = "#159090", size = 1) +
+  geom_point(size = 3, color = "#159090") +
+  geom_vline(xintercept = 3, linetype = "dashed", color = "red", alpha = 0.5) +
+  labs(title = "Elbow Method for Optimal K",
+       subtitle = "Look for the 'elbow' where the curve bends",
+       x = "Number of Clusters (K)",
+       y = "Total Within-Cluster Sum of Squares") +
+  scale_x_continuous(breaks = 1:10) +
+  theme_minimal()
+```
+
+**What do we see?**
+- WCSS decreases as K increases (expected!)
+- There's a clear "elbow" around K = 2 or 3
+- After K = 3, improvements become marginal
+
+**Interpretation:** K = 3 looks like a good choice!
+
+### Understanding the Elbow
+
+Think of it like this:
+
+- **K = 1:** All penguins in one cluster (not useful!)
+- **K = 2:** Major improvement - captures biggest difference
+- **K = 3:** Still good improvement - captures finer structure
+- **K = 4+:** Diminishing returns - splitting natural groups
+
+The elbow is where adding more clusters stops giving you much benefit.
+
+### Approach 2: Silhouette Analysis
+
+**Silhouette coefficient** measures how well each point fits in its cluster:
+
+- **+1:** Point is far from other clusters (great fit!)
+- **0:** Point is on the border between clusters (ambiguous)
+- **-1:** Point might be in the wrong cluster (poor fit!)
+
+**Average silhouette:** Higher = better clustering overall
+
+Let's calculate for different K values:
+```{r silhouette-analysis}
+library(cluster)
+
+# Function to calculate average silhouette
+calculate_silhouette <- function(k, data) {
+  set.seed(123)
+  kmeans_result <- kmeans(data, centers = k, nstart = 25)
+  
+  # Calculate silhouette (needs at least 2 clusters)
+  if (k > 1) {
+    sil <- cluster::silhouette(kmeans_result$cluster, dist(data))
+    return(mean(sil[, 3]))  # Average silhouette width
+  } else {
+    return(NA)
+  }
+}
+
+# Try K from 2 to 10 (can't calculate silhouette for K=1)
+k_values_sil <- 2:10
+sil_values <- map_dbl(k_values_sil, calculate_silhouette, data = penguin_scaled_recipe)
+
+# Create results tibble
+silhouette_data <- tibble(
+  k = k_values_sil,
+  avg_silhouette = sil_values
+)
+
+# Plot
+ggplot(silhouette_data, aes(x = k, y = avg_silhouette)) +
+  geom_line(color = "#FF8C00", size = 1) +
+  geom_point(size = 3, color = "#FF8C00") +
+  geom_vline(xintercept = 3, linetype = "dashed", color = "red", alpha = 0.5) +
+  labs(title = "Silhouette Analysis for Optimal K",
+       subtitle = "Higher average silhouette = better clustering",
+       x = "Number of Clusters (K)",
+       y = "Average Silhouette Width") +
+  scale_x_continuous(breaks = 2:10) +
+  theme_minimal()
+```
+
+**What do we see?**
+- K = 2 has the highest silhouette score
+- K = 3 is also quite good
+- K = 4+ shows decreasing quality
+
+**Interpretation:** Both K = 2 and K = 3 are reasonable choices!
+
+### Combining Both Methods
+
+Let's visualize both metrics together:
+```{r compare-methods, fig.height=6}
+# Normalize both metrics to 0-1 scale for comparison
+combined_data <- elbow_data %>%
+  left_join(silhouette_data, by = "k") %>%
+  mutate(
+    wcss_normalized = 1 - (wcss - min(wcss)) / (max(wcss) - min(wcss)),
+    sil_normalized = (avg_silhouette - min(avg_silhouette, na.rm=TRUE)) / 
+                     (max(avg_silhouette, na.rm=TRUE) - min(avg_silhouette, na.rm=TRUE))
+  ) %>%
+  pivot_longer(cols = c(wcss_normalized, sil_normalized),
+               names_to = "metric",
+               values_to = "value")
+
+ggplot(combined_data, aes(x = k, y = value, color = metric)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  geom_vline(xintercept = 3, linetype = "dashed", alpha = 0.5) +
+  scale_color_manual(
+    values = c("wcss_normalized" = "#159090", "sil_normalized" = "#FF8C00"),
+    labels = c("Elbow (WCSS)", "Silhouette")
+  ) +
+  labs(title = "Comparing Methods for Optimal K",
+       subtitle = "Both suggest K = 2 or K = 3",
+       x = "Number of Clusters (K)",
+       y = "Normalized Score (higher = better)",
+       color = "Method") +
+  scale_x_continuous(breaks = 1:10) +
+  theme_minimal()
+```
+
+**Decision:** Let's go with **K = 3** since:
+- It's a clear elbow point
+- Silhouette is still good
+- It makes biological sense (3 species!)
+
+### Fitting the Final K-means Model
+
+Now let's fit K-means with K = 3:
+```{r fit-kmeans-final}
+set.seed(123)
+
+# Fit K-means with K = 3
+kmeans_final <- kmeans(
+  penguin_scaled_recipe, 
+  centers = 3,
+  nstart = 25  # Try 25 random starts, keep best result
+)
+
+# Look at the result
+kmeans_final
+```
+
+**Understanding the output:**
+- **Cluster sizes:** How many penguins in each cluster
+- **Cluster means:** Center of each cluster (in scaled space)
+- **Within cluster sum of squares:** How tight each cluster is
+- **Available components:** `$cluster`, `$centers`, `$size`
+
+### What is `nstart = 25`?
+
+K-means starts with random initial centers, which can affect the final result.
+
+**`nstart = 25` means:**
+- Run the algorithm 25 times with different random starts
+- Keep the best result (lowest WCSS)
+- This helps avoid poor local optima
+
+**Always use `nstart ≥ 20`** for more reliable results!
+
+### Extracting Cluster Assignments
+
+Let's add the cluster assignments to our original data:
+```{r add-clusters}
+# Add cluster assignments to our data
+penguins_clustered <- penguins_complete %>%
+  mutate(cluster = as.factor(kmeans_final$cluster))
+
+# Look at first few rows
+penguins_clustered %>%
+  select(species, cluster, bill_length_mm, bill_depth_mm, 
+         flipper_length_mm, body_mass_g) %>%
+  head(10)
+```
+
+### Cluster Characteristics: Who's in Each Group?
+
+Let's profile each cluster to understand what makes them different:
+```{r cluster-profiles}
+# Calculate mean values for each cluster (in original scale)
+cluster_profiles <- penguins_clustered %>%
+  group_by(cluster) %>%
+  summarise(
+    n = n(),
+    mean_bill_length = mean(bill_length_mm),
+    mean_bill_depth = mean(bill_depth_mm),
+    mean_flipper = mean(flipper_length_mm),
+    mean_mass = mean(body_mass_g)
+  )
+
+# Visualize cluster profiles
+cluster_profiles %>%
+  pivot_longer(cols = starts_with("mean_"),
+               names_to = "feature",
+               values_to = "value") %>%
+  mutate(feature = str_remove(feature, "mean_")) %>%
+  ggplot(aes(x = feature, y = value, fill = cluster)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("1" = "#FF8C00", "2" = "#159090", "3" = "#A034F0")) +
+  facet_wrap(~ feature, scales = "free") +
+  labs(title = "Cluster Profiles: Mean Values",
+       subtitle = "How do clusters differ on each feature?",
+       x = "",
+       y = "Mean Value") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+```
+
+### The Big Reveal: Do Clusters Match Species?
+
+Now let's peek at how our clusters align with the true species:
+```{r cluster-species-comparison}
+# Confusion matrix: Cluster vs Species
+cluster_species_table <- table(
+  Cluster = penguins_clustered$cluster,
+  Species = penguins_clustered$species
+)
+
+penguins_clustered %>%
+  count(cluster, species) %>%
+  ggplot(aes(x = cluster, y = n, fill = species)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("Adelie" = "#FF8C00", 
+                                "Chinstrap" = "#A034F0", 
+                                "Gentoo" = "#159090")) +
+  labs(title = "Cluster Composition by Species",
+       subtitle = "How well did clustering discover the species?",
+       x = "Cluster",
+       y = "Count",
+       fill = "True Species") +
+  theme_minimal()
+```
+
+**Questions to consider:**
+- Does one cluster perfectly match one species?
+- Are some species split across clusters?
+- Are some clusters mixed?
+
+
+---
+
+## 5. Visualizing Clusters with PCA
+
+### The Visualization Challenge
+
+We have a problem: our penguins exist in **4-dimensional space**:
+1. Bill length
+2. Bill depth
+3. Flipper length
+4. Body mass
+
+**But:** We can only visualize 2D (or maybe 3D) plots!
+
+**Question:** How do we see our 4D clusters?
+
+### What is PCA?
+
+**PCA (Principal Component Analysis)** finds the "best" way to flatten high-dimensional data into fewer dimensions.
+
+**Think of it like this:**
+
+Imagine photographing a 3D object:
+- You can take photos from different angles
+- Some angles show more detail than others
+- PCA finds the "best angle" to capture the most information
+
+**For our penguins:**
+- We have 4D data
+- PCA finds 2 new dimensions (PC1 and PC2)
+- These 2 dimensions capture the MOST variation in the data
+
+### Performing PCA on Our Penguin Data
+
+Let's apply PCA to our scaled features:
+```{r perform-pca}
+# Perform PCA
+pca_result <- penguin_scaled_recipe %>%
+  prcomp()
+
+# Look at the summary
+summary(pca_result)
+```
+
+**Understanding the output:**
+
+- **Standard deviation:** How much variance each PC captures
+- **Proportion of Variance:** What % of total variation each PC explains
+- **Cumulative Proportion:** Running total of variance explained
+
+**Key insight:** PC1 and PC2 together explain about **90%** of the total variation!
+
+### How Much Information Are We Keeping?
+
+Let's visualize how much variance each PC explains:
+```{r scree-plot}
+# Extract variance explained
+variance_explained <- tibble(
+  PC = paste0("PC", 1:4),
+  variance = (pca_result$sdev)^2,
+  proportion = variance / sum(variance),
+  cumulative = cumsum(proportion)
+)
+
+variance_explained
+
+# Scree plot
+ggplot(variance_explained, aes(x = PC, y = proportion)) +
+  geom_col(fill = "#159090") +
+  geom_line(aes(y = cumulative, group = 1), color = "#FF8C00", size = 1.5) +
+  geom_point(aes(y = cumulative), color = "#FF8C00", size = 3) +
+  labs(title = "Variance Explained by Each Principal Component",
+       subtitle = "Orange line shows cumulative variance",
+       x = "Principal Component",
+       y = "Proportion of Variance Explained") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal()
+```
+
+**Interpretation:**
+- **PC1** captures the most variation
+- **PC2** captures the second most
+- Together, PC1 and PC2 capture 90% of the total variation
+- We're only "losing" ~10% by reducing from 4D to 2D!
+
+### Extracting PC Coordinates
+
+Now let's get the 2D coordinates for each penguin:
+```{r extract-pca-coords}
+# Extract PC scores (coordinates in the new space)
+pca_coords <- pca_result$x %>%
+  as_tibble() %>%
+  select(PC1, PC2)  # We only need first 2 PCs
+
+# Add to our data
+penguins_with_pca <- penguins_clustered %>%
+  bind_cols(pca_coords)
+
+# Look at first few rows
+penguins_with_pca %>%
+  select(species, cluster, PC1, PC2) %>%
+  head()
+```
+
+**Now each penguin has:**
+- New 2D coordinates (PC1, PC2)
+
+
+### The PCA Plot: Clusters in 2D
+
+Now we can visualize all our clusters in one optimal 2D view:
+```{r pca-cluster-plot}
+ggplot(penguins_with_pca, aes(x = PC1, y = PC2, color = cluster)) +
+  geom_point(size = 3, alpha = 0.7) +
+  scale_color_manual(values = c("1" = "#FF8C00", "2" = "#159090", "3" = "#A034F0")) +
+  labs(title = "K-means Clusters Visualized with PCA",
+       subtitle = "2D view capturing most of the 4D structure",
+       x = paste0("PC1 (", round(variance_explained$proportion[1]*100, 1), "% of variance)"),
+       y = paste0("PC2 (", round(variance_explained$proportion[2]*100, 1), "% of variance)")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+Now we can see all three clusters clearly in one plot!
+
+### Biplot: Features and Data Together
+
+A **biplot** shows both the data points AND the original feature directions:
+```{r biplot}
+library(factoextra)
+
+fviz_pca_biplot(pca_result,
+                col.ind = penguins_clustered$cluster,
+                palette = c("#FF8C00", "#159090", "#A034F0"),
+                addEllipses = TRUE,
+                label = "var",
+                legend.title = "Cluster") +
+  labs(title = "PCA Biplot with Clusters",
+       subtitle = "Arrows show direction of original features") +
+  theme_minimal()
+```
+
+**Reading the biplot:**
+- **Points:** Individual penguins
+- **Arrows:** Original feature directions
+- **Arrow length:** How much that feature contributes
+- **Arrow direction:** Which way the feature increases
+
+**Insights:**
+- Penguins in the direction of an arrow are high in that feature
+- Arrows pointing the same way = correlated features
+- Arrows at right angles = uncorrelated features
+
+### Comparing PCA Plot to True Species
+
+Let's see how the PCA view looks when colored by actual species:
+```{r pca-species-comparison}
+p1 <- ggplot(penguins_with_pca, aes(x = PC1, y = PC2, color = cluster)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_color_manual(values = c("1" = "#FF8C00", "2" = "#159090", "3" = "#A034F0")) +
+  labs(title = "Colored by Cluster (K-means)",
+       x = "PC1", y = "PC2") +
+  theme_minimal()
+
+p2 <- ggplot(penguins_with_pca, aes(x = PC1, y = PC2, color = species)) +
+  geom_point(size = 2, alpha = 0.7) +
+  scale_color_manual(values = c("Adelie" = "#FF8C00", 
+                                 "Chinstrap" = "#A034F0", 
+                                 "Gentoo" = "#159090")) +
+  labs(title = "Colored by True Species",
+       x = "PC1", y = "PC2") +
+  theme_minimal()
+
+p1 / p2
+```
+
+**How well do they match?** The PCA view makes it easy to compare!
+
+
+
+
+---
+
