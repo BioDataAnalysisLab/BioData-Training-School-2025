@@ -1,0 +1,54 @@
+---
+title: "Challenge_answers"
+author: "Brooke Wolford"
+date: "2025-12-04"
+output: html_document
+---
+
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#load packages
+library(dplyr)
+library(readr)
+library(tidyr)
+```
+
+# Challenge Answers
+
+Task: Given a simple data frame of patients with ID, sex, age, and cholesterol values in two visits, write code to:
+	1.	Filter patients over 45 years and save to a new dataset called sub, how many are there?
+	2.  Select ID, Sex, and Cholesterol columns to a new dataset called sub2.
+	3.	Using sub2, create a new variable that is 1 if the patient has high cholesterol (over 200), and 0 otherwise. Save this to a datset called high.
+	4.	Using sub2, summarize average cholesterol by sex
+
+```{r}
+
+df <- data.frame(
+  ID = 1:8,
+  Age = c(34, 60, 45, 50, 29, 80, 55, 65),
+  SBP = c(120, 140, 135, 150, 110, 140, 120, 125 ),
+  cholesterol = c(200,220, 190, 195, 180, 240, 230, 235),
+  sex = c("Male","Male","Female","Male","Female","Female","Male","Male")
+)
+
+# Filter patients over 45 and save to a new dataset named sub
+sub<-df %>% filter(Age>45)
+
+# How many patients are over 45?
+nrow(sub)
+
+# In the original dataset, select the ID, sex, and cholesterol column for a new dataset
+sub2<-df %>% select(ID,sex,cholesterol)
+
+# Create a new variable (indicator variable) showing whether cholesterol is above 200
+sub3<-sub2 %>% mutate(high=ifelse(cholesterol>200,1,0))
+
+# Summarize average cholesterol by sex
+sub2 %>% group_by(sex) %>%summarise(mean_chol=mean(cholesterol))
+
+
+```
