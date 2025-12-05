@@ -7,11 +7,12 @@ Follow the instructions below to prepare for the workshop.
 ### macOS
 
 1. Install R
-	1.	Under Download and Install R, click Download R for macOS. 
-	2.	Choose the latest R-x.x.x.pkg file (top of the page). 
-	3.	Open the .pkg file once it finishes downloading. 
-	4.	Follow the installer prompts → Continue → Install. 
-	5.	Enter your Mac password if asked. 
+	1.	Go to the CRAN R project [website](https://cran.r-project.org)
+ 	2.	Under Download and Install R, click Download R for macOS. 
+	3.	Choose the latest R-x.x.x.pkg file (top of the page). 
+	4.	Open the .pkg file once it finishes downloading. 
+	5.	Follow the installer prompts → Continue → Install. 
+	6.	Enter your Mac password if asked. 
 
 2. Install RStudio
 	1.	Go to the RStudio download [page](https://posit.co/download/rstudio-desktop/)
