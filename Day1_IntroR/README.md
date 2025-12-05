@@ -64,3 +64,7 @@ Now you can navigate to Day1_IntroR within the new directory that was just creat
 ## Let's code
 
 The [IntroR.Rmd](Intro.Rmd) file has all of the code that we will go through together. However, I encourage you to open the [IntroR_working.Rmd](IntroR_working.Rmd) file, which has blanks for you to type the code yourself. THis will make for more effective learning. However, it may be helpful for you to have both open, so that you can copy and paste some code if you get lost. 
+
+## Challenge yourself
+
+At the end of the R Markdown file there is a Challenge. You can view the answers [here](ChallengeAnswers.Rmd)
