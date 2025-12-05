@@ -46,4 +46,8 @@ RStudio will automatically detect your R installation.
 
 1. Open the [Setup.R](Setup.R) script in RStudio. On mac, you can do this by File > Open File. 
 2. In the top left pane, you will see a button that says Source in the top right corner. Press this and it will run the Setup Script.
-3. In the bottom left console, read the output. If you did not pass all of the checks, something may be wrong. 
+3. In the bottom left console, read the output. If you did not pass all of the checks, something may be wrong.
+
+### Let's code
+
+The [IntroR.Rmd](Intro.Rmd) file has all of the code that we will go through together. However, I encourage you to open the [IntroR_working.Rmd](IntroR_working.Rmd) file, which has blanks for you to type the code yourself. THis will make for more effective learning. However, it may be helpful for you to have both open, so that you can copy and paste some code if you get lost. 
