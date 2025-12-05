@@ -41,6 +41,8 @@ RStudio will automatically detect your R installation.
 
 RStudio will automatically detect your R installation.
 
+You can orient yourself to RStudio using this [guide](RStudio.pdf).
+
 ## Clone the repo
 
 You may have been provided a Google Drive link to download the files from this repository. You should be sure you know where those files are, as we will use them in the instructions below. 
