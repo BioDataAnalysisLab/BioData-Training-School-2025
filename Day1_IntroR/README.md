@@ -54,13 +54,13 @@ Another option is to clone this repository. Open Rstudio and in the bottom left 
 git clone https://github.com/BioDataAnalysisLab/BioData-Training-School-2025.git
 ```
 
-Now you can navigate to Day1_IntroR within the new directory that was just created.
+Look again at the Files pane in the bottom left. Navigate to `BioData-Training-School-2025/Day1_IntroR/`. 
 
 ## Setup RStudio environment
 
-1. Open the [Setup.R](Setup.R) script in RStudio. On mac, you can do this by File > Open File. 
+1. Open the [Setup.R](Setup.R) script in RStudio by clicking on it in the Files pane in the bottom right. You should see it open in the top left pane.
 2. In the top left pane, you will see a button that says Source in the top right corner. Press this and it will run the Setup Script.
-3. In the bottom left console, read the output. If you did not pass all of the checks, something may be wrong.
+3. In the bottom left Console, read the output. If you did not pass all of the checks, something may be wrong.
 
 ## Let's code
 
