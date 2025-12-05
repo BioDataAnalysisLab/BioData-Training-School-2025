@@ -2,7 +2,7 @@
 ######### R Environment Test Script ###########
 ###############################################
 
-required <- c("tidyverse", "ggplot2", "tidymodels")
+required <- c("ggplot2","dplyr","readr","tidyr")
 results <- list()
 
 cat("Checking required packages...\n")

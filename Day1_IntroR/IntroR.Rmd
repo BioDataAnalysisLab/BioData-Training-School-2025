@@ -193,11 +193,7 @@ str(mat)
 
 ### Set-up our environment
 
-First, we need to load in the libraries we will use. Remember to go to Terminal to install new packages.
-
-`conda install r-dplyr r-tidyr r-readr`
-
-The tidyverse package is an "umbrella-package" that installs several packages useful for data analysis which work together well such as tidyr, dplyr, readr, ggplot2, tibble, etc. It can take some time to install, so do that later if you would like.
+The tidyverse package is an "umbrella-package" that installs several packages useful for data analysis which work together well such as tidyr, dplyr, readr, ggplot2, etc. It can take some time to install, so do that later if you would like. The Setup.R script you ran earlier should have installed these packages for you. If not, you may need to use the example `install.packages()` command below.
 
 ```{r}
 library(dplyr)
@@ -205,6 +201,7 @@ library(tidyr)
 library(readr)
 
 #library(tidyverse)
+#install.packages("dplyr")
 ```
 
 ### Read in data
