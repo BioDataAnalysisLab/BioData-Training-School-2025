@@ -42,6 +42,18 @@ RStudio will automatically detect your R installation.
 
 RStudio will automatically detect your R installation.
 
+### Clone the repo
+
+You may have been provided a Google Drive link to download the files from this repository. You should be sure you know where those files are, as we will use them in the instructions below. 
+
+Another option is to clone this repository. Open Rstudio and in the bottom left corner you'll see the Files pane. Navigate to a directory where you would like to keep these files. In the bottom left pane, select the Terminal pane and execute the following command.
+
+```
+git clone https://github.com/BioDataAnalysisLab/BioData-Training-School-2025.git
+```
+
+Now you can navigate to Day1_IntroR within the new directory that was just created.
+
 ### Setup RStudio environment
 
 1. Open the [Setup.R](Setup.R) script in RStudio. On mac, you can do this by File > Open File. 
