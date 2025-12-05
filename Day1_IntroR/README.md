@@ -44,6 +44,6 @@ RStudio will automatically detect your R installation.
 
 ### Setup RStudio environment
 
-1. Open the [Setup.R](Day1_IntroR/Setup.R) script in RStudio. On mac, you can do this by File > Open File. 
+1. Open the [Setup.R](/Setup.R) script in RStudio. On mac, you can do this by File > Open File. 
 2. In the top left pane, you will see a button that says Source in the top right corner. Press this and it will run the Setup Script.
 3. In the bottom left console, read the output. If you did not pass all of the checks, something may be wrong. 
