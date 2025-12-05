@@ -2,7 +2,7 @@
 
 Follow the instructions below to prepare for the workshop.
 
-### Install R and RStudio 
+## Install R and RStudio 
 
 ### macOS
 
@@ -41,7 +41,7 @@ RStudio will automatically detect your R installation.
 
 RStudio will automatically detect your R installation.
 
-### Clone the repo
+## Clone the repo
 
 You may have been provided a Google Drive link to download the files from this repository. You should be sure you know where those files are, as we will use them in the instructions below. 
 
@@ -53,12 +53,12 @@ git clone https://github.com/BioDataAnalysisLab/BioData-Training-School-2025.git
 
 Now you can navigate to Day1_IntroR within the new directory that was just created.
 
-### Setup RStudio environment
+## Setup RStudio environment
 
 1. Open the [Setup.R](Setup.R) script in RStudio. On mac, you can do this by File > Open File. 
 2. In the top left pane, you will see a button that says Source in the top right corner. Press this and it will run the Setup Script.
 3. In the bottom left console, read the output. If you did not pass all of the checks, something may be wrong.
 
-### Let's code
+## Let's code
 
 The [IntroR.Rmd](Intro.Rmd) file has all of the code that we will go through together. However, I encourage you to open the [IntroR_working.Rmd](IntroR_working.Rmd) file, which has blanks for you to type the code yourself. THis will make for more effective learning. However, it may be helpful for you to have both open, so that you can copy and paste some code if you get lost. 
