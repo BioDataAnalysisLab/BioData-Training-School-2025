@@ -1,6 +1,5 @@
 ---
 title: "Non parametric tests"
-author: "Eliana Ibrahimi"
 date: "2025-12-05"
 output: html_document
 ---
@@ -141,7 +140,6 @@ group_by(data, group) %>%
 ```
 
 
-
 ### Visualize the data
 ```{r}
 
@@ -153,7 +151,6 @@ ggboxplot(data, x = "group", y = "weight",
 
 
 ```
-
 
 
 ```{r}
@@ -170,7 +167,6 @@ shapiro.test(data$weight[group=="Woman"])
 shapiro.test(data$weight[group=="Man"])
 
 ```
-
 
 ### Run Mann Whitney test using wilcox.test function
 ```{r}
@@ -193,7 +189,6 @@ dataplant <- read_csv("dataplant.csv",
 attach(dataplant)
 
 ```
-
 
 ### Compute summary statistics by group
 
@@ -221,7 +216,6 @@ qqPlot(dataplant$height[group=="trt2"])
 ```
 
 
-
 ```{r}
 # Mean plots
 # ++++++++++++++++++++
@@ -234,8 +228,6 @@ ggline(dataplant, x = "group", y = "height",
        order = c("ctrl", "trt1", "trt2"),
        ylab = "Height", xlab = "Treatment")
 ```
-
-
 
 
 ### Perform the Kruskal-Wallis test
@@ -292,7 +284,6 @@ cor.test(x, y, method=c("spearman"))
 ```
 
 
-
 ## Sources/References
 
 https://rcompanion.org/rcompanion/e_02.html
@@ -300,3 +291,4 @@ http://www.sthda.com
 http://www.statstutor.ac.uk//
 https://www.sheffield.ac.uk/polopoly_fs/1.885209!/file/101_KruskalWallis.pdf
 http://www.sthda.com/english/wiki/ggplot2-scatter-plots-quick-start-guide-r-software-and-data-visualization
+
