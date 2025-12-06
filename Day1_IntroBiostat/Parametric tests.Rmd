@@ -1,6 +1,5 @@
 ---
 title: "Parametric tests"
-author: "Eliana Ibrahimi"
 date: "2025-12-05"
 output: html_document
 ---
@@ -454,3 +453,4 @@ Quick R http://www.statmethods.net/
 https://statistics.laerd.com/
 
 https://www.r-bloggers.com/chi-squared-test/
+
