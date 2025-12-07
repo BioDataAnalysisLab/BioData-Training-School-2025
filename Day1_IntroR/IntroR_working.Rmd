@@ -1,5 +1,5 @@
 ---
-  title: "Intro to R and Data Handling"
+  title: "Intro to R and Data Handling - Working Copy"
 author: "Brooke Wolford"
 date: "2025-12-04"
 output: html_document
@@ -37,11 +37,11 @@ A script ends in `.R` and a notebook ends in `.Rmd`
 
 ### Defining variables
 R has five basic or “atomic” classes of objects:
-  - character
-  - numeric (real numbers)
-  - integer
-  - complex
-  - logical (True/False)
+  - character 
+  - numeric (real numbers) 
+  - integer 
+  - complex 
+  - logical (True/False) 
 
 Once a variable is created, we can use the variable name to refer to the value it was assigned. The variable name now acts as a tag. To see the value of a variable, we can print it by:
   1) typing the name of the variable and hitting return in the Console
@@ -53,15 +53,9 @@ In general, R will print to the console any object returned by a function or ope
 ```{r}
 
 #we use an arrow to assign a value to a variable
-x<-5
-class(x)
 
 #we can coerce an object from one class to another
-y<-as.integer(x)
-class(y)
 
-z<-1L
-class(z)
 ```
 
 It is important that we name variables in a way that other users and our future selves will understand. Today, most R programmers 1) start variable names with lower case letters, 2) separate words in variable names with underscores, and 3) use only lowercase letters, underscores, and numbers in variable names. The [Tidyverse Style Guide](https://style.tidyverse.org/syntax.html) includes a section on this.
@@ -73,21 +67,15 @@ The most basic type of R object is a vector. Vectors can only contain objects of
 ```{r}
 
 #initialize a vector
-a<-vector("numeric",10)
-print(a)
+
 
 #define a vector with c() function
-b<-c(1,2,3)
-print(b)
 
 #check what class the variables are
-class(a)
-class(b)
+
 
 #create a data frame
-x<-1:10
-y<-rnorm(10)
-df<-data.frame(x,y)
+
 
 ```
 
@@ -96,21 +84,18 @@ df<-data.frame(x,y)
 ```{r} 
 
 #as a calculator
-1+2
-sqrt(25)
 
 
 # View summary statistics
 heights <- c(150, 160, 165, 170, 155)
-mean(heights)
-summary(heights)
+
 
 # plot data using base R
-plot(heights)
+
 
 # perform statistical tests
 heights2<-c(100,80,85,90)
-t.test(heights,heights2)
+
 
 ```
 
@@ -123,13 +108,10 @@ In the R Console or when using R in Terminal, you can use the function `install.
 ```{r}
 
 #what libraries are loaded in the environment?
-sessionInfo()
 
 #now we call the package we installed
-library(ggplot2)
 
 #now we can use functions from the ggplot2 package
-ggplot(df,aes(x,y)) + geom_point()
 
 ```
 
@@ -184,9 +166,6 @@ patient <- list(
 mat <- matrix(1:9, nrow = 3, byrow = TRUE)
 
 # Explore structure
-str(df)
-str(patient)
-str(mat)
 
 ```
 
@@ -227,14 +206,14 @@ Now, let's read our data into R. There are several options for reading csv files
 
 #we pass 2 arguments, the path where the file is, and information about if the file has column names
 #we assign the data frame information to the variable "dat"
-dat<-read_csv(file=path,col_names=FALSE)
+
 
 	#for local access from Windows computers (given that the working directory is set to "../BioData-Training-School-2025/Day1_IntroR") 
 		#NB: Cannot use file paths with the read_csv command on Windows, so working directory needs to be set beforehand
 	#dat<-read_csv(file, col_names=FALSE)
 
 #let's look at the first few rows 
-head(dat)
+
 
 ```
 
@@ -243,15 +222,15 @@ Using `head` we see that R has auto-generated column names in the sequence V1 (f
 ```{r}
 
 #let's inspect the function details
-?read_csv
+
 
 #what about the baseR function
-?read.csv
+
 
 #let's read in the file with base R and read in the header properly now
 
 #let's use base R because it's a little easier for beginners
-dat<-read.csv(file=path,header=TRUE)
+
 	#for local access from Windows computers (given that the working directory is set to "HealthAIinR/data") 
 		#NB: Cannot use file paths with the read.csv command on Windows, so working directory needs to be set beforehand
 	#dat<-read.csv(file, header=TRUE)
@@ -263,18 +242,6 @@ dat<-read.csv(file=path,header=TRUE)
 We are going to start digging into the data with base R. There are several functions that help us inspect our data to get a sense of what it looks like.
 
 ```{r}
-
-class(dat)
-
-dim(dat)
-
-nrow(dat)
-
-names(dat)
-
-str(dat)
-
-summary(dat)
 
 ```
 
@@ -290,15 +257,11 @@ If we want to select contiguous rows or columns, we can use the colon.
 ```{r}
 
 #this will pull out the value in the 30th row and 20th column
-dat[3,5]
-
-dat[c(1, 3, 5), c(2, 4)]
 
 #let's check what 1:5 does
-1:5
 
 #now let's use it in row and column space
-dat[1:5,1:5]
+
 
 ```
 
@@ -307,13 +270,13 @@ If we leave the row or column space open, it means we want to select all of that
 ```{r}
 
 #All columns from row 3 to see the values for Sub003
-dat[3,]
+
 
 # All rows from column 6-9 regarding Anuerysms
-dat[, 6:9]
+
 
 #what do you think happens if we leave both values empty
-dat[,]
+
 
 ```
 
@@ -322,14 +285,11 @@ We can also use column names. This is helpful because if you add columns or rows
 ```{r}
 
 #using the $ operator 
-dat$BloodPressure
 
 #Name within square brackets
-dat[,"BloodPressure"]
 
 #rows can have names too; in this case they're just the row index
-dat["1",]
-dat[1,]
+
 
 ```
 
@@ -338,10 +298,10 @@ All the indexing and subsetting that works on data frames also works on vectors.
 ```{r}
 
 #pull out a column from the data frame as a vector
-BP_vec<-dat$BloodPressure
+
 
 #subset for the first 10 participants
-BP_vec[1:10]
+
 
 ```
 
@@ -357,20 +317,18 @@ Note: The packages in the tidyverse, namely dplyr, tidyr and ggplot2 accept both
 ```{r}
 
 #functionality similar to str()
-glimpse(dat)
+
 
 #in dplyr we can select the columns by name
-select(dat,Age)
+
 
 #another way to do this is with the pipe
-dat %>% select(Age)
+
 
 # we can use filter to filter observations for individuals with high blood pressure, this time let's save it into a new data frame
-high <- dat %>% filter(BloodPressure>130)
-high
 
 # what object class is high
-class(high)
+
 
 ```
 
@@ -378,30 +336,27 @@ You may also have noticed that the output from the object `high` doesn’t run o
 
 ```{r}
 #you can see we went from 100 to 30 observations when we used filter()
-nrow(dat)
-nrow(high)
+
 
 # We can also specify multiple conditions within the filter() function.
 
 #high blood pressure and the control group
 
 # To form “and” statements within dplyr, we can pass our desired conditions as arguments in the filter() function, separated by commas:
-high_control<-dat %>% filter(BloodPressure>130,Group=="Control")
+
 
 # or we can use the ampersand "&" operator
-high_control<-dat %>% filter(BloodPressure>130 & Group=="Control")
+
 
 #how can we check that both of these filtered data frames are the same size?
 
 # Have you noticed that the Gender column uses two conventions for male/female (lower case and upper case)?
-table(dat$Gender)
+
 
 # To filter for the male participants, we will need to accomodate both conventions
 
 # For an “or” statement, observations must meet at least one of the specified conditions. To form “or” statements we use the logical operator for “or,” which is the vertical bar (|):
 
-males <- dat %>% filter(Gender=="M"|Gender=="m")
-table(males$Gender)
 
 ```
 
@@ -424,10 +379,7 @@ Some may find it helpful to read the pipe like the word “then”.
 ```{r}
 
 #combining filter and select with a pipe
-high_control_males<- dat %>% filter(Gender=="M"|Gender=="m")  %>% 
-  filter(BloodPressure>130 & Group=="Control")
 
-high_control_males
 
 ```
 
@@ -438,14 +390,13 @@ Frequently you’ll want to create new columns based on the values in existing c
 ```{r}
 
 #Let's fix the mismatched upper and lower case
-dat %>% mutate(Gender_v2=toupper(Gender))
+
 
 # Is the new column there?
-names(dat)
+
 
 # We have to save this back to the "dat" object so the new column will be represented in future versions of the tibble
-dat <- dat %>% mutate(Gender_v2=toupper(Gender))
-table(dat$Gender_v2)
+
 
 ```
 
@@ -457,14 +408,10 @@ Many data analysis tasks can be approached using the split-apply-combine paradig
 ```{r}
 
 # What is the median blood pressure per treatment group?
-dat %>%
-  group_by(Group) %>%
-  summarize(medianBP_group=median(BloodPressure))
+
 
 # Can we also stratify by sex?
-dat %>%
-  group_by(Group,Gender_v2) %>%
-  summarize(medianBP_group=median(BloodPressure))
+
 
 ```
 
@@ -473,10 +420,10 @@ dat %>%
 ```{r}
 
 #how many of each treatment group are there?
-dat %>% count(Group)
+
 
 #let's sort by size
-dat %>% count(Group,sort=TRUE)
+
 
 ```
 
@@ -505,6 +452,7 @@ Two key functions in `tidyr` are `pivot_longer()` and `pivot_wider()`. [tidyr ch
 
 #create new dataset called long
 
+
 # what do you observe about the new data frame?
 
 # now we can use group_by to summarize by quadrant, this would have been difficult in the previous format
@@ -525,7 +473,6 @@ Further arguments include values_fill which, if set, fills in missing values wit
 ```{r}
 
 #use pivot wider
-
 
 # You see we have NA in the cells that are missing. This probably isn't a good data format for this dataset, but it may come in handy in other scenarios.
 

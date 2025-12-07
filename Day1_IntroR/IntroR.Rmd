@@ -37,11 +37,11 @@ A script ends in `.R` and a notebook ends in `.Rmd`
 
 ### Defining variables
 R has five basic or “atomic” classes of objects:
-  - character
-  - numeric (real numbers)
-  - integer
-  - complex
-  - logical (True/False)
+  - character 
+  - numeric (real numbers) 
+  - integer 
+  - complex 
+  - logical (True/False) 
 
 Once a variable is created, we can use the variable name to refer to the value it was assigned. The variable name now acts as a tag. To see the value of a variable, we can print it by:
   1) typing the name of the variable and hitting return in the Console
@@ -568,5 +568,4 @@ df <- data.frame(
 
 
 # Summarize average cholesterol by sex
-
 
