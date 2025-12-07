@@ -1,0 +1,456 @@
+---
+title: "Parametric tests"
+date: "2025-12-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Install necessary packages
+```{r}
+#install("ggplots", "PairedData", "car", "dplyr")
+```
+
+
+
+## One sample t-test
+
+The one-sample t test used to compare an observed mean with a theoretical mean.
+
+In our example we want to know if the HbA1c mean level in 5 diabetic patients is equal to 5.5, the mean assumed for the normal population.
+
+```{r}
+
+#Read data (HbA1c test for 5 diabetic patients)
+
+x <- c(8.5, 9.3, 7.9, 9.2, 10.3)
+```
+
+
+### Compute the t-test
+```{r}
+#One sample t-test 
+
+t.test(x, mu = 5.5) #(two-sided)
+
+# Help on t.test function
+?t.test
+
+```
+
+
+### Check assumptions: Normality of the data
+```{r}
+
+#Graphs
+qqnorm(x)
+qqline(x)
+boxplot(x)
+
+#Formal test
+shapiro.test(x)
+```
+
+
+###Documentation:
+
+A one-sample t-test was run to determine whether HbA1c level in diabetic subjects was different to the normal population assumed value, defined as a HbA1c of 5.5. HbA1c level was normally distributed, as assessed by Shapiro-Wilk's test (p > 0 .05) and there were no outliers in the data, as assessed by inspection of a boxplot. Mean HbA1c (9.04, 95% CI, 7.92 to 10.16) was higher than the normal HbA1c of 5.5, a statistically significant difference (t(4)= 8.75; p=0.0009).
+
+
+
+
+## The independent t test
+
+We will use an independent t-test to understand whether weight differed based on gender (here our dependent variable is "weight" and our independent variable is "gender", which has two groups: "man" and "woman").
+
+```{r}
+# Data in two numeric vectors
+women_weight <- c(38.9, 61.2, 73.3, 21.8, 63.4, 64.6, 48.4, 48.8, 48.5)
+men_weight <- c(67.8, 60, 63.4, 76, 89.4, 73.3, 67.3, 61.3, 62.4) 
+
+# Create a data frame
+my_data <- data.frame( 
+  group = rep(c("Woman", "Man"), each = 9),
+  weight = c(women_weight,  men_weight)
+)
+```
+
+
+### Compute summary statistics
+```{r}
+library("dplyr")
+group_by(my_data, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(weight, na.rm = TRUE),
+    sd = sd(weight, na.rm = TRUE)
+  )
+```
+
+
+### Visualize the data
+```{r}
+# Plot weight by group and color by group
+
+# Box plot
+boxplot(weight ~ group, data = my_data,
+        xlab = "Gender", ylab = "Weight",
+        frame = FALSE, col = c("lightblue", "red")) 
+```
+
+### Test homogeneity of variances
+
+```{r}
+library(car)
+leveneTest(weight ~ group, data = my_data)
+
+```
+
+Equal variances assumed p>0.05. 
+
+
+### Compute t-test
+```{r}
+# Compute t-test using t.test function
+ t2<- t.test(weight ~ group, data = my_data, var.equal = TRUE) #assume equal variances
+ t2
+
+#t2$stderr
+#t2$statistic
+#t2$estimate
+
+
+```
+
+
+
+### Test for normality
+```{r}
+# Shapiro-Wilk normality test for Men's weights
+with(my_data, shapiro.test(weight[group == "Man"]))# p = 0.1
+# Shapiro-Wilk normality test for Women's weights
+with(my_data, shapiro.test(weight[group == "Woman"])) # p = 0.6
+```
+
+
+### Documentation: 
+
+An independent-samples t-test was run to determine if there were differences in weight between males and females. There were no outliers in the data, as assessed by inspection of a boxplot. Weight for each level of gender was normally distributed, as assessed by Shapiro-Wilk test (p > 0.05), and there was homogeneity of variances, as assessed by Levene's test for equality of variances (p = 0.225). The weight was larger for males (68.98) than female (52.1), a statistically significant difference, t(16) = 2.784, p = 0.013.
+
+
+
+## The paired t test
+
+The paired t test used to compare two sets of paired samples.
+
+In this example we consider the weight of the mice before and after a specific treatment. We want to know if the difference in weight before and after the treatment is different from zero.
+
+```{r}
+# Data in two numeric vectors
+
+# Weight of the mice before treatment
+before <-c(200.1, 190.9, 192.7, 213, 241.4, 196.9, 172.2, 185.5, 205.2, 193.7)
+# Weight of the mice after treatment
+after <-c(392.9, 393.2, 345.1, 393, 434, 427.9, 422, 383.9, 392.3, 352.2)
+# Create a data frame
+my_data2 <- data.frame( 
+                group = rep(c("before", "after"), each = 10),
+                weight = c(before,  after)
+                )
+
+# Print all data
+print(my_data2)
+
+```
+
+
+
+### Compute summary statistics
+
+```{r}
+library("dplyr")
+group_by(my_data2, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(weight, na.rm = TRUE),
+    sd = sd(weight, na.rm = TRUE)
+  )
+```
+
+
+### Plot paired data
+```{r}
+# Subset weight data before treatment
+before <- subset(my_data2,  group == "before", weight,
+                 drop = TRUE)
+# subset weight data after treatment
+after <- subset(my_data2,  group == "after", weight,
+                 drop = TRUE)
+
+# Plot paired data
+library(PairedData)
+pd <- paired(before, after)
+plot(pd, type = "profile") + theme_bw()
+```
+
+
+### Visualize data
+```{r}
+# Box plot
+boxplot(weight ~ group, data = my_data2,
+        xlab = "Time", ylab = "Weight",
+        frame = FALSE, col = c("8", "2")) #color with numbers is an option
+```
+
+
+
+```{r}
+# Compute t-test
+res <- t.test(before, after, paired = TRUE)
+res
+
+```
+
+### Check normality of the differences 
+
+```{r}
+d=before-after #Calculate differences
+
+shapiro.test(d) #test for normality
+```
+### Documentation:
+
+A paired-samples t-test was run to determine if there were differences in weight before and after treatment in mice. There were no extreme outliers in the data, as assessed by inspection of a boxplot. Weight differences were normally distributed, as assessed by Shapiro-Wilk test (p > 0.05). The weight was larger after the treatment compared to before, a statistically significant difference, t(16) = -20.88, p <0.0001.
+
+
+
+## One-way ANOVA
+
+The one-way analysis of variance (ANOVA), also known as one-factor ANOVA, is used to compare means in a cases where there are two or more groups. The data is organized into several groups base on the so called factor variable. 
+
+In this example we run an ANOVA test to see if physical activity has an effect in the ability to cope with stress. Our factor is physical activity with 4 levels: "Sedentary", "Low", "Moderate", "High", and our dependent/response variable is the ability to cope with workplace-related stress (CWWS score). 
+
+### Read the data
+
+```{r}
+# Read and prepare the data
+
+library(readxl)
+data_anova <- read_excel("one-way-anova.xlsx", col_types = c("numeric", "numeric"))
+
+# Create the factor variable or better trasform group to factor.
+
+data_anova <- within(data_anova, {
+  
+  group <- factor(group, levels = 1:4, labels = c("Sedentary", "Low", "Moderate", "High"))
+ 
+})
+
+head(data_anova)
+# Now the data are ready to analyze.
+```
+
+
+### Explore the data
+
+Compute summary statistics
+
+```{r}
+library(dplyr)
+
+group_by(data_anova, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(coping_stress, na.rm = TRUE),
+    sd = sd(coping_stress, na.rm = TRUE)
+  )
+```
+
+
+### Visualize your data
+
+
+```{r}
+# Box plot
+boxplot(coping_stress ~ group, data = data_anova,
+        xlab = "Physical activity", ylab = "Coping with stress",
+        frame = FALSE, col = c("blue", "green", "pink", "red"))
+
+# plotmeans
+library("gplots")
+plotmeans(coping_stress ~ group, data = data_anova, frame = FALSE,
+          xlab = "Physical activity", ylab = "Coping with stress",
+          main="Mean Plot with 95% CI") 
+```
+
+
+### Compute one-way ANOVA test
+
+The R function aov() can be used to answer to our research question. The function summary.aov() is used to summarize the analysis of the variance model.
+
+```{r}
+
+# Compute the analysis of variance
+res.aov <- aov(coping_stress ~ group, data = data_anova)
+# Summary of the analysis
+summary(res.aov)
+
+```
+
+The output includes the columns F value and Pr(> F) corresponding to the p-value of the test.
+
+### Interpret the result of one-way ANOVA tests
+
+The ability to cope with workplace-related stress (CWWS score) was statistically significantly different for different levels of physical activity group, F(3, 27) = 8.316, p = 0.000445. 
+
+### Multiple pairwise-comparison between the means of groups
+
+In one-way ANOVA test, a significant p-value indicates that some of the group means are different, but we don't know which pairs of groups are different. It's possible to perform multiple pairwise-comparison, to determine if the mean difference between specific pairs of group are statistically significant.
+
+As the ANOVA test is significant, we can compute Tukey HSD (Tukey Honest Significant Differences, R function: TukeyHSD()) for performing multiple pairwise-comparison between the means of groups. The function TukeyHD() takes the fitted ANOVA as an argument.
+
+```{r}
+TukeyHSD(res.aov) 
+```
+
+### Interpretation:
+
+The result of the multiple pairwise-comparison between the means of groups show a significant difference (p<0.05) between the sedentary group and the moderate and high groups. 
+
+
+
+### Check ANOVA assumptions: test validity?
+The ANOVA test assumes that, the data are normally distributed and the variance across groups are homogeneous. We can check that with some diagnostic tests and plots.
+
+1. Check the homogeneity of variance assumption
+
+You can use formal Levene's test, which is less sensitive to departures from normal distribution. The function leveneTest() [in car package] will be used:
+
+```{r}
+library(car)
+leveneTest(coping_stress ~ group, data = data_anova)
+
+```
+
+From the output above we can see that the p-value > 0.05, therefore, we can assume the homogeneity of variances in the different groups.
+
+
+
+2. Check the normality assumption
+
+Normality plot of residuals. In the plot below, the quantiles of the residuals are plotted against the quantiles of the normal distribution. A 45-degree reference line is also plotted. The normal probability plot of residuals is used to check the assumption that the residuals are normally distributed. It should approximately follow a straight line. 
+
+```{r}
+
+# 2. Normality
+plot(res.aov, 2)
+
+```
+
+As all the points fall approximately along this reference line, we can assume normality. 
+
+The conclusion above, is supported by the Shapiro-Wilk test on the ANOVA residuals
+(W = 0.96, p = 0.450) which finds no indication that normality is violated.
+
+```{r}
+# Extract the residuals
+aov_residuals <- residuals(object = res.aov )
+# Run Shapiro-Wilk test
+shapiro.test(x = aov_residuals )
+
+```
+
+##Analysis of categorical data
+
+```{r}
+#read the data
+library(readr)
+treat.drug <- read_csv("chi-square.csv", 
+    col_types = cols(id = col_number(), improvement = col_character(), 
+        treatment = col_character()))
+
+```
+
+- Organize the data in a crosstab
+
+```{r}
+#Create crosstab
+dt<- table(treat.drug$treatment, treat.drug$improvement)
+dt #print the crosstab
+
+```
+- From the crosstab we see that there are two categorical variables with two levels each. We have treatment, treated and not-treated, and improvement of health: improved and not-improved. We want to see if treatment is related to improvement of health.
+
+### Visualize the data
+
+```{r}
+# Plot the data
+
+barplot(dt,
+main = "Treatment effect",
+xlab = "Improvement", beside = TRUE,
+col = c("red","green")
+)
+legend("topright",
+c("Not-Treated","Treated"),
+fill = c("red","green")
+)
+```
+
+
+### Conduct the chi-square test for association/independence
+
+```{r}
+# Chi-sq test
+chisq <- chisq.test(dt, correct=FALSE)
+chisq
+```
+
+We have a chi-squared value of 5.55. Since we get a p-Value less than the significance level of 0.05, we can reject the null hypothesis and conclude that the two variables are in fact dependent. 
+
+
+
+### Check assumptions
+
+```{r}
+
+# Expected counts
+round(chisq$expected,2)
+
+```
+
+### Documentation
+
+A chi-square test for association was conducted between treatment and health improvement. All expected cell frequencies were greater than five. There was a statistically significant association between treatment and health improvement, ??2(1) = 5.56, p = 0.018.
+
+
+
+## Fisher's exact test
+
+The function fisher.test is used to perform Fisher's exact test when the sample size is small. We will run the Fisher's exact test in the same data as in chi-square to see if there is a  difference.
+
+```{r}
+fisher <- fisher.test(dt)
+fisher
+```
+
+From the output we see that the p-value is less than the significance level of 0.05, we can reject the null hypothesis. In our context, rejecting the null hypothesis for the Fisher's exact test of independence means that there is a significant relationship between the two categorical variables (treatment and improvement).  
+
+
+
+## Sources/References
+
+http://www.sthda.com/
+
+http://www.stat.auckland.ac.nz
+
+http://socserv.mcmaster.ca/jfox/
+
+Quick R http://www.statmethods.net/
+
+https://statistics.laerd.com/
+
+https://www.r-bloggers.com/chi-squared-test/
+

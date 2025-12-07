@@ -6,7 +6,7 @@
 
 The BioData Training School 2025 — Fundamentals of Biological Data Analysis with R - will be an intensive, hands-on training aimed at students, researchers, and early-career professionals who want to start building skills in biological data analysis. The training will combine interactive lectures, guided exercises, and hands-on analysis of real-world datasets. The goal is to teach participants how to manage, visualize, and analyze biological data using the R programming language. In addition to core topics such as data cleaning, exploratory analysis, statistical modeling, and machine learning algorithms, the course will introduce key bioinformatics basics, including working with sequence data, functional annotation, and interpreting findings.
 
-For more information about this workshop follow this [link](https://sites.google.com/fshn.edu.al/hob/events-training/training-school-2025?authuser=1)
+For more information about this training school follow this [link](https://sites.google.com/fshn.edu.al/hob/events-training/training-school-2025?authuser=1)
 
 ## Training Schedule & Materials
 
@@ -14,9 +14,9 @@ For more information about this workshop follow this [link](https://sites.google
 
 | Time (CET) | Activity | Topic | Lecturer | Materials |
 |------------|----------|-------|----------|-----------|
-| 9:30 AM | Lecture 1 | Concepts of biological data and biostatistics | Eliana Ibrahimi | [📂 Materials](./Day1_Concepts%20of%20Biostatistics%20%26%20Biological%20data) |
+| 9:30 AM | Lecture 1 | Concepts of biological data and biostatistics | Eliana Ibrahimi | [📂 Materials](./Day1_IntroBiostat) |
 | 11:00 AM | Lecture 2 + Practical | Intro to R and data handling | Brooke N. Wolford | [📂 Materials](./Day1_IntroR) |
-| 1:30 PM | Lecture 3 + Practical | Intro to statistical modeling - Applied linear models | Eliana Ibrahimi | [📂 Materials](./Day1_Linear%20Statistical%20Models) |
+| 1:30 PM | Lecture 3 + Practical | Intro to statistical modeling - Applied linear models | Eliana Ibrahimi | [📂 Materials](./Day1_LinearModels) |
 | 3:00 PM | Lecture 4 + Practical | Data visualization and dimensionality reduction techniques | Ariol Rama | Coming soon |
 | 4:00 PM | Project | Introducing the group project | Alise Ponsero, Eliana Ibrahimi | Coming soon |
 

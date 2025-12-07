@@ -1,0 +1,294 @@
+---
+title: "Non parametric tests"
+date: "2025-12-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Two related samples: Wilcoxon Signed rank test
+
+### Read the data
+
+
+```{r}
+# Data in two numeric vectors
+# ++++++++++++++++++++++++++
+# Weight of the mice before treatment
+weight_before <-c(200.1, 190.9, 192.7, 213, 241.4, 196.9, 172.2, 185.5, 205.2, 193.7)
+# Weight of the mice after treatment
+weight_after <-c(392.9, 393.2, 395.1, 393, 334, 327.9, 222, 383.9, 392.3, 352.2)
+# Create a data frame
+my_data <- data.frame( 
+                group = rep(c("before", "after"), each = 10),
+                weight = c(weight_before,  weight_after)
+                )
+print(my_data)
+```
+
+
+
+### Explore the data: Compute summary statistics
+```{r}
+#install.packages("dplyr")
+```
+
+
+```{r}
+library(dplyr)
+group_by(my_data, group) %>%
+  summarise(
+    count = n(),
+    median = median(weight, na.rm = TRUE),
+    IQR = IQR(weight, na.rm = TRUE)
+  )
+```
+
+#### Visualize paired data
+```{r}
+# Subset weight data before treatment
+before <- subset(my_data,  group == "before", weight,
+                 drop = TRUE)
+# subset weight data after treatment
+after <- subset(my_data,  group == "after", weight,
+                 drop = TRUE)
+# Plot paired data
+library(PairedData)
+pd <- paired(before, after)
+plot(pd, type = "profile") + theme_bw()
+```
+
+
+```{r}
+#install.packages("ggpubr")
+```
+
+```{r}
+# Plot weight by group and color by group
+library("ggpubr")
+ggboxplot(my_data, x = "group", y = "weight", 
+          color = "group", palette = c("red", "#E7B800"),
+          ylab = "Weight", xlab = "Groups")
+
+#or you use simply
+
+boxplot(my_data$weight~my_data$group)
+```
+
+### Compute the difference between groups
+ 
+```{r}
+diff=  weight_after - weight_before
+diff
+```
+
+```{r}
+hist(diff, main="Weight differences", xlab="Difference", breaks = 10)
+boxplot(diff)
+```
+
+### Run shapiro wilk test for differences
+```{r}
+shapiro.test(diff)
+```
+
+
+### Run the Wilcoxon signed rank test
+```{r}
+
+#install.packages("PairedData")
+library(PairedData)
+
+#In order to run the Wilcoxon signed rank test, use the command
+#wilcoxon.test (variable1, variable2,Paired=TRUE, exact=FALSE)
+
+#So for this example use
+wilcox.test(weight_after, weight_before, paired = TRUE, exact=FALSE)
+```
+
+
+## Two independent sapmples
+
+### Read the data
+
+```{r}
+# Data in two numeric vectors
+women_weight <- c(38.9, 61.2, 73.3, 21.8, 63.4, 64.6, 48.4, 48.8, 48.5)
+men_weight <- c(67.8, 60, 63.4, 61, 89.4, 83.3, 67.3, 91.3, 62.4) 
+# Create a data frame
+data <- data.frame( 
+                group = rep(c("Woman", "Man"), each = 9),
+                weight = c(women_weight,  men_weight)
+                )
+print(data)
+attach(data)
+```
+
+
+### Compute summary statistics
+```{r}
+library(dplyr)
+group_by(data, group) %>%
+  summarise(
+    count = n(),
+    median = median(weight, na.rm = TRUE),
+    IQR = IQR(weight, na.rm = TRUE)
+  )
+```
+
+
+### Visualize the data
+```{r}
+
+# Plot weight by group and color by group
+library("ggpubr")
+ggboxplot(data, x = "group", y = "weight", 
+          color = "group", palette = c("#00AFBB", "#E7B800"),
+          ylab = "Weight", xlab = "Groups")
+
+
+```
+
+
+```{r}
+
+#Plot histograms for the dependent ulcer free weeks by group
+par(mfrow=c(1,2))
+hist(data$weight[group=='Woman'],main='Histogram for woman',xlab='Woman weight')
+hist(data$weight[group=='Man'],main='Histogram for man',xlab='Men weight')
+```
+
+### Perform Shapiro Wilk test by group
+```{r}
+shapiro.test(data$weight[group=="Woman"])
+shapiro.test(data$weight[group=="Man"])
+
+```
+
+### Run Mann Whitney test using wilcox.test function
+```{r}
+wilcox.test(weight~group, paired= FALSE, exact=FALSE)
+```
+
+
+## Two or more independent samples
+
+### Import the data from csv file
+
+```{r}
+
+ library(readr)
+dataplant <- read_csv("dataplant.csv", 
+    col_types = cols(height = col_number(), 
+        group = col_factor(levels = c("ctrl", 
+            "trt1", "trt2"))))
+
+attach(dataplant)
+
+```
+
+### Compute summary statistics by group
+
+```{r}
+library(dplyr)
+group_by(dataplant, group) %>%
+  summarise(
+    count = n(),
+    mean = mean(height, na.rm = TRUE),
+    sd = sd(height, na.rm = TRUE),
+    median = median(height, na.rm = TRUE),
+    IQR = IQR(height, na.rm = TRUE)
+  )
+```
+
+### Visualize the data 
+
+```{r}
+boxplot(dataplant$height~dataplant$group, col="white", xlab = "Treatment", ylab = "Height")
+library(car)
+qqPlot(dataplant$height[group=="ctrl"])
+qqPlot(dataplant$height[group=="trt1"])
+qqPlot(dataplant$height[group=="trt2"])
+
+```
+
+
+```{r}
+# Mean plots
+# ++++++++++++++++++++
+# Plot weight by group
+# Add error bars: mean_se
+# (other values include: mean_sd, mean_ci, median_iqr, ....)
+library("ggpubr")
+ggline(dataplant, x = "group", y = "height", 
+       add = c("mean_se", "jitter"), 
+       order = c("ctrl", "trt1", "trt2"),
+       ylab = "Height", xlab = "Treatment")
+```
+
+
+### Perform the Kruskal-Wallis test
+
+```{r}
+kruskal.test(height ~ group, data = dataplant)
+```
+
+### Perform the pairwise Wilcoxon test
+```{r}
+pairwise.wilcox.test(dataplant$height,dataplant$group,p.adj='bonferroni',exact=F)
+
+```
+
+## Spearman correlation
+
+ 
+### Read the data and create the dataframe
+```{r}
+#Use the weight dataset from example 1
+# Data in two numeric vectors
+# ++++++++++++++++++++++++++
+# Weight of the mice before treatment
+x <-c(200.1, 190.9, 192.7, 213, 241.4, 196.9, 172.2, 185.5, 205.2, 193.7)
+# Weight of the mice after treatment
+y <-c(392.9, 393.2, 395.1, 393, 410, 327.9, 222, 383.9, 392.3, 352.2)
+
+my_data <- data.frame(x,y)
+print(my_data)
+```
+
+### Visualize the data using scatter plot
+
+```{r}
+library(ggplot2)
+ggplot(my_data, aes(x=x, y=y)) +
+  geom_point(aes(size=25)) +
+  geom_smooth(method=lm, se=FALSE)
+```
+
+```{r}
+library(car)
+scatterplot(x,y)
+plot(x,y)
+hist(x)
+hist(y)
+```
+
+
+### Calculate the Spearman correlation
+```{r}
+cor(x, y, method = c("spearman"))
+cor.test(x, y, method=c("spearman"))
+```
+
+
+## Sources/References
+
+https://rcompanion.org/rcompanion/e_02.html
+http://www.sthda.com
+http://www.statstutor.ac.uk//
+https://www.sheffield.ac.uk/polopoly_fs/1.885209!/file/101_KruskalWallis.pdf
+http://www.sthda.com/english/wiki/ggplot2-scatter-plots-quick-start-guide-r-software-and-data-visualization
+
