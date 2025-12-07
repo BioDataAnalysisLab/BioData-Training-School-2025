@@ -1,0 +1,203 @@
+---
+title: "Practical on Linear Models"
+date: "2025-12-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+We will use the coronary dataset from  (<https://github.com/drkamarul/multivar_data_analysis/tree/main/data>). The dataset contains the total cholesterol level, their characteristics, and intervention groups in a hypothetical clinical trial. The dataset contains 200 observations for nine variables:
+
+id: Subjects’ ID. cad: Coronary artery disease status (categorical) {no cad, cad}. sbp : Systolic blood pressure in mmHg (numerical). dp : Diastolic blood pressure in mmHg (numerical). chol: Total cholesterol level in mmol/L (numerical). age: Age in years (numerical). bmi: Body mass index (numerical). race: Race of the subjects (categorical) {malay, chinese, indian}. gender: Gender of the subjects (categorical) {woman, man}.
+
+Load the packages
+
+```{r}
+#Install packages
+#install.packages("tidyverse", "GGally", "emmeans")
+
+library(tidyverse)
+library(GGally)
+library(emmeans)
+
+```
+
+Load the data
+
+```{r}
+#set working directory
+#setwd("C:/Users/RegressionProject") #data is stored in working directory
+
+# load the data
+coronaryNA <- read_csv("coronaryNA.csv")
+```
+
+Explore the data with the pairs plot, where we focus on the distribution of the data by histograms and boxplots, including information on the bivariate correlation statistics between the numerical variables.
+
+```{r}
+
+#remove observations with missing data
+coronaryNA=na.omit(coronaryNA)
+#Built pair plot
+GGally::ggpairs(coronaryNA %>% select(-id, -cad), progress = FALSE)
+
+```
+
+Fit One-way ANOVA
+
+```{r}
+# Fit linear model
+fit_anova <- lm(chol ~ race, data = coronaryNA)
+
+# ANOVA table
+anova(fit_anova)
+
+# If ANOVA is significant (p < 0.05):
+
+emm <- emmeans(fit_anova, ~ race)
+pairs(emm)        # pairwise comparisons
+
+```
+The ANOVA table shows a statistically significant effect of race on cholesterol levels: F(2, 61) = 5.74; p = 0.005,indicating that at least one racial group differs significantly from the others in mean cholesterol level.
+
+Since the ANOVA was significant, pairwise comparisons using Tukey’s HSD were performed:
+
+Contrast	Interpretation:
+Chinese vs Indian -	Chinese individuals have significantly lower cholesterol than Indian individuals (estimate = –1.03, p = 0.0095).
+Chinese vs Malay -	No significant difference in cholesterol levels (estimate = –0.21, p = 0.80).
+Indian vs Malay -	Indian individuals have significantly higher cholesterol than Malay individuals (estimate = +0.82, p = 0.0224).
+
+
+Fit two-way ANOVA
+
+A two-way ANOVA to test the effects of race and gender on cholesterol levels (chol).
+
+```{r}
+fit_2anova <- lm(chol ~ race + gender, data = coronaryNA)
+anova(fit_2anova)
+
+```
+
+Effect of Race F(2, 60) = 5.65, p = 0.0057, indicating a significant effect of race on cholesterol levels. This means that mean cholesterol differs across at least one pair of racial groups.
+
+Effect of Gender F(1, 60) = 0.0093, p = 0.9235, showing no statistically significant effect of gender on cholesterol levels. Males and females have similar mean cholesterol levels in this dataset. 
+
+
+Here we assume the effect of race is the same for men and women. The effect of gender is the same across all races.
+
+
+IF THIS IS NOT THE CASE
+
+
+Two-way ANOVA with interaction
+
+```{r}
+fit_interaction <- lm(chol ~ race * gender, data = coronaryNA)
+anova(fit_interaction)
+
+```
+Interaction Effect: Race × Gender, F(2, 58) = 2.30; p = 0.109. The interaction is not statistically significant. This means: The effect of race on cholesterol does not significantly differ between males and females; Likewise, the effect of gender does not differ significantly across racial groups.
+
+
+
+Check model assumptions (important for ANOVA)
+
+```{r}
+
+par(mfrow = c(2, 2))
+plot(fit_interaction)
+```
+
+All major assumptions of linear modelling/ANOVA appear to be met:
+
+✔ Linearity
+✔ Normality of residuals (minor tail deviations only)
+✔ Homoscedasticity (constant variance)
+✔ No problematic influential outliers
+
+ANOVA results are reliable and valid based on these diagnostics.
+
+
+
+##Fit Linear regression
+We want to explore the effect of all predictors on cholesterol levels.
+
+###Variable selection
+
+To explore the importance of the variables, we may perform stepwise automatic selection. We should keep in mind that for confirmatory analysis, it is important to also rely on expert opinion for the variable selection. The stepwise selection can be forward, backward or combined.
+
+Forward selection starts with an intercept only model and proceeds by adding one variable after another. Akaike information criterion (AIC) is used as a measure of model fit. We are interested in the model with the lowest AIC iteratively. This is done automatically in R and the steps are shown in the output. More information about AIC can be referred to Wikipedia.
+
+Backward selection starts with a model containing all variables, removing one variable after another, to find the model with the lowest AIC. We apply this in our example as follows:
+
+```{r}
+
+# The model
+mlr_chol <- lm(chol ~ dbp + bmi + race + age + gender, data = coronaryNA)
+summary(mlr_chol)
+
+# backward selection
+mlr_chol_stepback <- step(mlr_chol, direction = "backward")
+
+```
+
+After considering the stepwise selection and get some expert opinion, we decide that our final model is chol \~ dbp + race (AIC=5.45).
+
+Fit the final model
+
+```{r}
+#Fit the model
+mlr_chol_sel <- lm(chol ~ dbp + race, data = coronaryNA)
+summary(mlr_chol_sel)
+
+```
+
+Check the normality of residuals
+
+Assess the normality of unstandardized residuals of the MLR model.
+
+```{r}
+
+rraw_chol <- resid(mlr_chol_sel)
+hist(rraw_chol)
+qqnorm(rraw_chol)
+qqline(rraw_chol)
+shapiro.test(rraw_chol)
+
+```
+
+The Shapiro test (p\>0.05) and plots indicate that the normality assumption for the residuals can be considered as met.
+
+#Interpretation of the Output
+
+The residual summary indicates the distribution of the differences between observed and predicted cholesterol levels. The median residual is close to zero, suggesting the model predictions are generally centered around the actual values, though the residual range (-2.17 to 2.21) indicates variability.
+
+#Coefficients
+
+The intercept (4.05) shows the predicted cholesterol level for a reference individual (with dbp = 0 and belonging to the reference race category, chinese) is 4.05. In our example does not make sense, just keep the idea.
+
+Regression coefficient for dbp (0.022) shows that for every unit increase in diastolic blood pressure, cholesterol levels increase by 0.0327 units, holding race constant. This effect is not statistically significant (p=0.06). The coefficient for raceindian (0.88) suggests that compared to the reference race (Chinese), individuals of indian race have a 0.88 unit higher cholesterol level, significant (p=0.011). While race malay coeffiecient (0.26) tells us that compared to the chinese race, malay individuals have a slightly higher cholesterol level (0.26), though this difference is not statistically significant (p=0.4).
+
+Model Fit
+
+Residual Standard Error (1.012): On average, the model’s predictions differ from the actual cholesterol levels by approximately 1.012 units.
+
+R²=0.206, about 20.6% of the variation in cholesterol levels is explained by diastolic blood pressure and race. After accounting for the number of predictors (adjusted R²), the model still explains 16.6 % of the variation in cholesterol levels.
+
+The model is statistically significant overall, indicating that at least one predictor significantly contributes to explaining cholesterol levels (F-statistic: 5.195 on 3 and 60 DF, p-value: 0.00295).
+
+The model explains a modest proportion of cholesterol variability, suggesting that additional predictors may be needed for a more comprehensive understanding.
+
+
+
+
+
+
+## Sources/References
+
+Linear models in statistics. <https://www.utstat.toronto.edu/~brunner/books/LinearModelsInStatistics.pdf>
+
+Linear models with R. <https://www.utstat.toronto.edu/~brunner/books/LinearModelsWithR.pdf>
+
