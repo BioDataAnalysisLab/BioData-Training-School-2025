@@ -206,12 +206,12 @@ library(readr)
 
 ### Read in data
 
-We are going to use example data from Software Carpentry. I have already downloaded it and included it in the directory where this code is. If the directory with this code is showing in the Files pane in the bottom right, you can click on the More and select "Copy Folder Path to Clipboard." Paste that below where it says "PASTE HERE" and remove the hashtag.
+We are going to use example data from Software Carpentry. I have already downloaded it and included it in the directory where this code is. If the directory with this code is showing in the Files pane in the bottom right, you can click on the More and select "Copy Folder Path to Clipboard." Paste that path below where it says "PASTE HERE". Be sure to keep the quotations and remove the hashtag.
 
 ```{r}
 
-#path<-PASTE HERE
-file<-"sample.csv"
+#path<-"PASTE HERE"
+file<-"/sample.csv"
 path<-paste0(path,file)
 
 ```
@@ -503,6 +503,7 @@ Two key functions in `tidyr` are `pivot_longer()` and `pivot_wider()`. [tidyr ch
 
 ```{r}
 
+#create new dataset called long
 long<-dat %>% pivot_longer(cols=Aneurisms_q1:Aneurisms_q4,
                      names_to="Quadrant",
                      values_to="AneurismCount")
@@ -528,6 +529,7 @@ Further arguments include values_fill which, if set, fills in missing values wit
 
 ```{r}
 
+#use pivot wider
 dat %>% pivot_wider(names_from=Group,
             values_from = BloodPressure)
 
@@ -554,18 +556,17 @@ df <- data.frame(
 )
 
 # Filter patients over 45 and save to a new dataset named sub
-sub<-df %>% filter(Age>45)
+
 
 # How many patients are over 45?
-nrow(sub)
+
 
 # In the original dataset, select the ID, sex, and cholesterol column for a new dataset
-sub2<-df %>% select(ID,sex,cholesterol)
+
 
 # Create a new variable (indicator variable) showing whether cholesterol is above 200
-sub3<-sub2 %>% mutate(high=ifelse(cholesterol>200,1,0))
+
 
 # Summarize average cholesterol by sex
-sub2 %>% group_by(sex) %>%summarise(mean_chol=mean(cholesterol))
-```
+
 

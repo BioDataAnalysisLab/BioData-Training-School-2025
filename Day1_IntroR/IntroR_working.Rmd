@@ -193,11 +193,7 @@ str(mat)
 
 ### Set-up our environment
 
-First, we need to load in the libraries we will use. Remember to go to Terminal to install new packages.
-
-`conda install r-dplyr r-tidyr r-readr`
-
-The tidyverse package is an "umbrella-package" that installs several packages useful for data analysis which work together well such as tidyr, dplyr, readr, ggplot2, tibble, etc. It can take some time to install, so do that later if you would like.
+The tidyverse package is an "umbrella-package" that installs several packages useful for data analysis which work together well such as tidyr, dplyr, readr, ggplot2, etc. It can take some time to install, so do that later if you would like. The Setup.R script you ran earlier should have installed these packages for you. If not, you may need to use the example `install.packages()` command below.
 
 ```{r}
 library(dplyr)
@@ -205,16 +201,17 @@ library(tidyr)
 library(readr)
 
 #library(tidyverse)
+#install.packages("dplyr")
 ```
 
 ### Read in data
 
-We are going to use example data from Software Carpentry. I have already downloaded it and included it in the directory where this code is. If the directory with this code is showing in the Files pane in the bottom right, you can click on the More and select "Copy Folder Path to Clipboard." Paste that below where it says "PASTE HERE" and remove the hashtag.
+We are going to use example data from Software Carpentry. I have already downloaded it and included it in the directory where this code is. If the directory with this code is showing in the Files pane in the bottom right, you can click on the More and select "Copy Folder Path to Clipboard." Paste that path below where it says "PASTE HERE". Be sure to keep the quotations and remove the hashtag.
 
 ```{r}
 
-#path<-PASTE HERE
-file<-"sample.csv"
+#path<-"PASTE HERE"
+file<-"/sample.csv"
 path<-paste0(path,file)
 
 ```
@@ -355,7 +352,8 @@ Check out the [dplyr cheatsheet](https://rstudio.github.io/cheatsheets/data-tran
 
 Note: The packages in the tidyverse, namely dplyr, tidyr and ggplot2 accept both the British (e.g. summarise) and American (e.g. summarize) spelling variants of different function and option names.
 
-Let's start with `filter()` and `select()`
+### `filter()` and `select()`
+
 ```{r}
 
 #functionality similar to str()
@@ -407,7 +405,7 @@ table(males$Gender)
 
 ```
 
-# Pipes
+### Pipes
 
 What if we want to select and filter at the same time?
 
@@ -433,7 +431,7 @@ high_control_males
 
 ```
 
-### mutate()
+### `mutate()`
 
 Frequently you’ll want to create new columns based on the values in existing columns, and for this you can use `mutate()`.
 
@@ -452,7 +450,7 @@ table(dat$Gender_v2)
 ```
 
 
-### group_by() and summarize()
+### `group_by()` and `summarize()`
 
 Many data analysis tasks can be approached using the split-apply-combine paradigm: split the data into groups, apply some analysis to each group, and then combine the results. dplyr makes this very easy through the use of the `group_by()` function. `group_by()` is often used together with `summarize()`, which collapses each group into a single-row summary of that group.
 
@@ -470,7 +468,7 @@ dat %>%
 
 ```
 
-### count()
+### `count()`
 
 ```{r}
 
@@ -496,7 +494,7 @@ The columns Aneurisms_q1-Aneurisms_q4 are total number of aneurysms for both eye
 
 Two key functions in `tidyr` are `pivot_longer()` and `pivot_wider()`. [tidyr cheatsheet](https://rstudio.github.io/cheatsheets/tidyr.pdf)
 
-pivot_longer() takes four principal arguments:
+`pivot_longer()` takes four principal arguments:
 
 1) the data
 2) cols are the names of the columns we use to fill the a new values variable (or to drop).
@@ -505,22 +503,18 @@ pivot_longer() takes four principal arguments:
 
 ```{r}
 
-long<-dat %>% pivot_longer(cols=Aneurisms_q1:Aneurisms_q4,
-                     names_to="Quadrant",
-                     values_to="AneurismCount")
-long
+#create new dataset called long
 
 # what do you observe about the new data frame?
 
 # now we can use group_by to summarize by quadrant, this would have been difficult in the previous format
-long %>% group_by(Quadrant) %>% 
-  summarize(median=median(AneurismCount))
+
 
 ```
 
 We can think of the Group and BloodPressure columns of the dataset as being a long version of something that could be represented with a wide format. Let's test `pivot_wider` here.
 
-pivot_wider() takes three principal arguments:
+`pivot_wider()` takes three principal arguments:
 
 1) the data
 2) the names_from column variable whose values will become new column names.
@@ -530,20 +524,20 @@ Further arguments include values_fill which, if set, fills in missing values wit
 
 ```{r}
 
-dat %>% pivot_wider(names_from=Group,
-            values_from = BloodPressure)
+#use pivot wider
+
 
 # You see we have NA in the cells that are missing. This probably isn't a good data format for this dataset, but it may come in handy in other scenarios.
 
 ```
 
-### Challenge
+# Challenge
 
 Task: Given a simple data frame of patients with ID, sex, age, and cholesterol values in two visits, write code to:
-	1.	Filter patients over 45 years
-	2.  Select ID and SBP columns
-	3.	Create a new variable showing whether cholesterol is above 200. How many?
-	4.	Summarize average cholesterol by sex
+	1.	Filter patients over 45 years and save to a new dataset called sub, how many are there?
+	2.  Select ID, Sex, and Cholesterol columns to a new dataset called sub2.
+	3.	Using sub2, create a new variable that is 1 if the patient has high cholesterol (over 200), and 0 otherwise. Save this to a datset called high.
+	4.	Using sub2, summarize average cholesterol by sex
 
 ```{r}
 
@@ -555,15 +549,18 @@ df <- data.frame(
   sex = c("Male","Male","Female","Male","Female","Female","Male","Male")
 )
 
-# Filter patients over 45
+# Filter patients over 45 and save to a new dataset named sub
 
-# Select specific columns
+
+# How many patients are over 45?
+
+# In the original dataset, select the ID, sex, and cholesterol column for a new dataset
+
 
 # Create a new variable (indicator variable) showing whether cholesterol is above 200
 
+
 # Summarize average cholesterol by sex
-
-
 
 ```
 
