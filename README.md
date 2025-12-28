@@ -18,7 +18,7 @@ For more information about this training school follow this [link](https://sites
 | 11:00 AM | Lecture 2 + Practical | Intro to R and data handling | Brooke N. Wolford | [📂 Materials](./Day1_IntroR) |
 | 1:30 PM | Lecture 3 + Practical | Intro to statistical modeling - Applied linear models | Eliana Ibrahimi | [📂 Materials](./Day1_LinearModels) |
 | 3:00 PM | Lecture 4 + Practical | Data visualization and dimensionality reduction techniques | Ariol Rama | [📂 Materials](./Day1_DimensionalityReduction) |
-| 4:00 PM | Project | Introducing the group project | Alise Ponsero, Eliana Ibrahimi | Coming soon |
+| 4:00 PM | Project | Introducing the group project | Alise Ponsero, Eliana Ibrahimi | [📂 Materials](./DataChallenge) |
 
 ### Day 2 - December 11: Fundamentals of Machine Learning in R
 
@@ -28,7 +28,7 @@ For more information about this training school follow this [link](https://sites
 | 11:00 AM | Lecture 2 + Practical | Supervised learning: Classification | Marta B. Lopes | [📂 Materials](./Day2_Classification) |
 | 1:30 PM | Lecture 3 + Practical | Unsupervised learning | Alise Ponsero | [📂 Materials](./Day2_Clustering) |
 | 3:15 PM | Lecture 4 | Tutorial on Predomics | Edi Prifti | Coming soon |
-| 4:00 PM | Project | Work on the group project | Ana Menkshi, Fatjona Murrani, Selma Saliaj | 📂 Materials](./Group_project) |
+| 4:00 PM | Project | Work on the group project | Ana Menkshi, Fatjona Murrani, Selma Saliaj | [📂 Materials](./DataChallenge)|
 
 ### Day 3 - December 12: Fundamentals of Bioinformatics in R
 
@@ -38,7 +38,7 @@ For more information about this training school follow this [link](https://sites
 | 10:30 AM | Lecture 2 + Practical | Gene expression analysis - From counts to biological meaning | Ilir Sheraj | [📂 Materials](./Day3-Bioinformatics) |
 | 1:00 PM | Lecture 3 + Practical | Gene set enrichment analysis - Decoding biological pathways and networks | Ilir Sheraj | [📂 Materials](./Day3-Bioinformatics) |
 | 2:30 PM | Lecture 4 | Tutorial: Single cell data analysis in R | Gesmira Molla | [📂 Materials](./Day3_SingleCell) |
-| 3:30 PM | Project | Group project work | Ana Menkshi, Fatjona Murrani, Selma Saliaj | Coming soon |
+| 3:30 PM | Project | Group project work | Ana Menkshi, Fatjona Murrani, Selma Saliaj | [📂 Materials](./DataChallenge) |
 
 ### Day 4 - December 13: Group Project Work
 
