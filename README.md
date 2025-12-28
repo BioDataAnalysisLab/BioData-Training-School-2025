@@ -17,7 +17,7 @@ For more information about this training school follow this [link](https://sites
 | 9:30 AM | Lecture 1 | Concepts of biological data and biostatistics | Eliana Ibrahimi | [📂 Materials](./Day1_IntroBiostat) |
 | 11:00 AM | Lecture 2 + Practical | Intro to R and data handling | Brooke N. Wolford | [📂 Materials](./Day1_IntroR) |
 | 1:30 PM | Lecture 3 + Practical | Intro to statistical modeling - Applied linear models | Eliana Ibrahimi | [📂 Materials](./Day1_LinearModels) |
-| 3:00 PM | Lecture 4 + Practical | Data visualization and dimensionality reduction techniques | Ariol Rama | [📂 Materials](./Day1_DimensionalityReduction) |
+| 3:00 PM | Lecture 4 + Practical | Data visualization and dimensionality reduction techniques | Ariol Rama | [📂 Materials](./Day1_Dimensionality Reduction) |
 | 4:00 PM | Project | Introducing the group project | Alise Ponsero, Eliana Ibrahimi | Coming soon |
 
 ### Day 2 - December 11: Fundamentals of Machine Learning in R
