@@ -1,0 +1,161 @@
+---
+title: "Logistic_Regression_Training"
+author: "Marta B. Lopes"
+date: "2025-12-09"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Matrix construction
+
+## Loading the data
+
+```{r}
+# Load a  glioma gene expression (RNA-seq) dataset with 2 class labels: astrocytoma (LGG-a) and oligodendroglioma (LGG-od)
+
+#setwd("~/Desktop/LGG_glioma.RData")
+load("~/Desktop/LGG_glioma.RData")
+
+## Xdata is the RNA-seq data and Ydata is the response variable with the corresponding glioma class
+dim(Xdata)
+# RNA-seq data from 381 patients measured over 20501 genes
+Xdata[1:5,1:8]
+length(Ydata)
+# Class label for the 381 patients (LGG-a is astrocytoma; LGG-od is oligodendroglioma)
+Ydata[1:5]
+summary(as.factor(Ydata))
+```
+
+## Data preprocessing
+
+```{r}
+## Data filtering
+# removing samples with standard deviation zero
+Xdata_sd <- sapply(seq(ncol(Xdata)), function(ix) {sd(Xdata[,ix])})
+Xdata <- Xdata[,Xdata_sd != 0]
+dim(Xdata)
+# 381 patients measured over 20176 genes
+
+## Data normalization
+# computing the z-score
+Xdata_sc <- scale(Xdata)
+```
+
+# Exploratory data analysis
+
+## Principal component analysis (PCA)
+
+```{r}
+# Perform PCA
+glioma_pca <- prcomp(Xdata, scale = TRUE)
+
+# Scores of the principal components
+scores <- as.data.frame(glioma_pca$x)
+scores$class <- Ydata
+
+# Variance explained by each component
+variance_explained <- glioma_pca$sdev^2
+prop_variance_explained <- variance_explained / sum(variance_explained)
+cumulative_prop_variance <- cumsum(prop_variance_explained)
+
+library(ggplot2)
+
+# Plot PCA scores plot
+ggplot(scores, aes(x = PC1, y = PC2, color = class)) +
+  geom_point() +
+  labs(title = paste("PCA Scores plot"),
+       x = "PC1",
+       y = "PC2") +
+  theme_minimal()
+
+# Plot % of variance explained
+pca_summary <- data.frame(
+  PC = 1:length(cumulative_prop_variance),
+  Cumulative_Prop_Variance = cumulative_prop_variance
+)
+
+ggplot(pca_summary, aes(x = PC, y = Cumulative_Prop_Variance)) +
+  geom_line(color = "red") +
+  geom_point(color = "blue") +
+  labs(title = "PCA: Cumulative Variance Explained",
+       x = "Principal Component (PC)",
+       y = "Cumulative Proportion of Variance Explained") +
+  theme_minimal()
+
+```
+
+## Sparse logistic regression with the elastic net penalty
+
+```{r}
+# Partition the data into training and test sets
+set.seed(2023)
+test_ID <- sample(1:dim(Xdata)[1], round(dim(Xdata)[1]*0.25), replace=FALSE)
+
+Ydata[Ydata=="LGG-a"] <- 1
+Ydata[Ydata=="LGG-od"] <- 0
+
+# train set
+Xdata_train <- as.matrix(Xdata[-test_ID,])
+Ydata_train <- as.factor(Ydata[-test_ID])
+# test set
+Xdata_test <- as.matrix(Xdata[test_ID,])
+Ydata_test <- as.factor(Ydata[test_ID])
+
+
+# Building the sparse logistic regression model (lambda optimized by cross-validation)
+
+library(glmnet)
+set.seed(1974)
+
+glioma_fit <- cv.glmnet(Xdata_train, Ydata_train, family="binomial", nfolds=10, alpha=1, type.measure="auc")
+
+# Extract lambda that gives max AUC
+lambda_auc <- glioma_fit$lambda.min  
+
+# Coefficients at best lambda
+glioma_coef <- coef(glioma_fit, s = lambda_auc)
+glioma_coef_vector <- as.vector(glioma_coef[-1])  # remove intercept
+
+genes_selected <- which(glioma_coef_vector != 0)
+length(genes_selected)
+
+data <- data.frame(
+  x = 1:length(genes_selected),
+  y = glioma_coef_vector[genes_selected],
+  labels = colnames(Xdata_train[,genes_selected])
+)
+
+ggplot(data, aes(x = x, y = y, label = labels)) +
+  geom_point() +
+  geom_text(hjust = 0, vjust = 0) +
+  labs(title = "Variable coefficients",
+       x = "Variable",
+       y = "Coefficients") +
+  theme_minimal()
+
+## Model predictive performance
+# Predicting for the training set
+
+pred_train <- predict(glioma_fit, Xdata_train, type="class", s = "lambda.min")
+# Confusion matrix for the train set
+table(Ydata_train,pred_train)
+
+# Calculate AUC for the train set
+library(pROC)
+roc_obj <- roc(as.numeric(as.character(Ydata_train)), as.numeric(pred_train))
+auc(roc_obj)
+
+# Predicting for a test set
+pred_test <- predict(glioma_fit,Xdata_test,type="class", s = "lambda.min")
+
+# Confusion matrix for the test set
+table(Ydata_test,pred_test)
+
+# Calculate AUC value for the test set
+roc_obj <- roc(as.numeric(as.character(Ydata_test)), as.numeric(pred_test))
+auc(roc_obj)
