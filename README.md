@@ -25,19 +25,19 @@ For more information about this training school follow this [link](https://sites
 | Time (CET) | Activity | Topic | Lecturer | Materials |
 |------------|----------|-------|----------|-----------|
 | 9:00 AM | Lecture 1 + Practical | Intro to ML, Supervised learning (Regression) | Alise Ponsero | [📂 Materials](./Day2_Regression) |
-| 11:00 AM | Lecture 2 + Practical | Supervised learning: Classification | Marta B. Lopes | Coming soon |
+| 11:00 AM | Lecture 2 + Practical | Supervised learning: Classification | Marta B. Lopes | [📂 Materials](./Day2_Classification) |
 | 1:30 PM | Lecture 3 + Practical | Unsupervised learning | Alise Ponsero | [📂 Materials](./Day2_Clustering) |
 | 3:15 PM | Lecture 4 | Tutorial on Predomics | Edi Prifti | Coming soon |
-| 4:00 PM | Project | Work on the group project | Ana Menkshi, Fatjona Murrani, Selma Saliaj | Coming soon |
+| 4:00 PM | Project | Work on the group project | Ana Menkshi, Fatjona Murrani, Selma Saliaj | 📂 Materials](./Group_project) |
 
 ### Day 3 - December 12: Fundamentals of Bioinformatics in R
 
 | Time (CET) | Activity | Topic | Lecturer | Materials |
 |------------|----------|-------|----------|-----------|
 | 9:00 AM | Lecture 1 | Intro to bioinformatics, foundations and applications | Alise Ponsero | Coming soon |
-| 10:30 AM | Lecture 2 + Practical | Gene expression analysis - From counts to biological meaning | Ilir Sheraj | Coming soon |
-| 1:00 PM | Lecture 3 + Practical | Gene set enrichment analysis - Decoding biological pathways and networks | Ilir Sheraj | Coming soon |
-| 2:30 PM | Lecture 4 | Tutorial: Single cell data analysis in R | Gesmira Molla | Coming soon |
+| 10:30 AM | Lecture 2 + Practical | Gene expression analysis - From counts to biological meaning | Ilir Sheraj | [📂 Materials](./Day3-Bioinformatics) |
+| 1:00 PM | Lecture 3 + Practical | Gene set enrichment analysis - Decoding biological pathways and networks | Ilir Sheraj | [📂 Materials](./Day3-Bioinformatics) |
+| 2:30 PM | Lecture 4 | Tutorial: Single cell data analysis in R | Gesmira Molla | [📂 Materials](./Day3_SingleCell) |
 | 3:30 PM | Project | Group project work | Ana Menkshi, Fatjona Murrani, Selma Saliaj | Coming soon |
 
 ### Day 4 - December 13: Group Project Work
