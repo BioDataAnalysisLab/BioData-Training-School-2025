@@ -27,14 +27,14 @@ For more information about this training school follow this [link](https://sites
 | 9:00 AM | Lecture 1 + Practical | Intro to ML, Supervised learning (Regression) | Alise Ponsero | [📂 Materials](./Day2_Regression) |
 | 11:00 AM | Lecture 2 + Practical | Supervised learning: Classification | Marta B. Lopes | [📂 Materials](./Day2_Classification) |
 | 1:30 PM | Lecture 3 + Practical | Unsupervised learning | Alise Ponsero | [📂 Materials](./Day2_Clustering) |
-| 3:15 PM | Lecture 4 | Tutorial on Predomics | Edi Prifti | Coming soon |
+| 3:15 PM | Lecture 4 | Tutorial on Predomics | Edi Prifti | [📂 Materials](./Day2_Predomics) |
 | 4:00 PM | Project | Work on the group project | Ana Menkshi, Fatjona Murrani, Selma Saliaj | [📂 Materials](./DataChallenge)|
 
 ### Day 3 - December 12: Fundamentals of Bioinformatics in R
 
 | Time (CET) | Activity | Topic | Lecturer | Materials |
 |------------|----------|-------|----------|-----------|
-| 9:00 AM | Lecture 1 | Intro to bioinformatics, foundations and applications | Alise Ponsero | Coming soon |
+| 9:00 AM | Lecture 1 | Intro to bioinformatics, foundations and applications | Alise Ponsero | [📂 Materials](./Day3_Introbioinformatics) |
 | 10:30 AM | Lecture 2 + Practical | Gene expression analysis - From counts to biological meaning | Ilir Sheraj | [📂 Materials](./Day3-Bioinformatics) |
 | 1:00 PM | Lecture 3 + Practical | Gene set enrichment analysis - Decoding biological pathways and networks | Ilir Sheraj | [📂 Materials](./Day3-Bioinformatics) |
 | 2:30 PM | Lecture 4 | Tutorial: Single cell data analysis in R | Gesmira Molla | [📂 Materials](./Day3_Singlecell) |
